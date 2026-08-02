@@ -1,13 +1,8 @@
 -- ============================================================
--- VISCERAL.CO — Database Schema (MySQL)
--- Sesuai skema Prisma di prd.md — jalankan langsung di MySQL Workbench
--- Urutan CREATE TABLE mengikuti urutan dependency foreign key
+-- INITIALIZE DATABASE
 -- ============================================================
-
-CREATE DATABASE IF NOT EXISTS visceral_co
-  CHARACTER SET utf8mb4
-  COLLATE utf8mb4_unicode_ci;
-
+DROP DATABASE IF EXISTS visceral_co;
+CREATE DATABASE visceral_co;
 USE visceral_co;
 
 -- ============================================================
@@ -15,24 +10,30 @@ USE visceral_co;
 -- ============================================================
 CREATE TABLE users (
   id            VARCHAR(36)  NOT NULL PRIMARY KEY,
-  email         VARCHAR(191) NOT NULL UNIQUE,
+  email         VARCHAR(150) NOT NULL UNIQUE,
   password      VARCHAR(255) NOT NULL,
   full_name     VARCHAR(150) NOT NULL,
-  phone_number  VARCHAR(20)  NULL,
-  role          ENUM('SUPERADMIN', 'ADMIN', 'CUSTOMER') NOT NULL DEFAULT 'CUSTOMER',
-  created_at    DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-  updated_at    DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)
+  phone_number   VARCHAR(20)  NULL,
+  avatar_url     VARCHAR(500) NULL,
+  phone_verified TINYINT(1)   NOT NULL DEFAULT 0,
+  otp_code_hash  VARCHAR(255) NULL,
+  otp_expires_at DATETIME(3)  NULL,
+  role           ENUM('CUSTOMER', 'ADMIN', 'SUPERADMIN') NOT NULL DEFAULT 'CUSTOMER',
+  created_at     DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at    DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)
 ) ENGINE=InnoDB;
 
+CREATE INDEX idx_users_email ON users(email);
+
 -- ============================================================
--- 2. ARTISTS (wajib soal — CRUD Penyanyi/Artis)
+-- 2. ARTISTS
 -- ============================================================
 CREATE TABLE artists (
-  id         VARCHAR(36)  NOT NULL PRIMARY KEY,
-  name       VARCHAR(150) NOT NULL,
-  bio        TEXT         NULL,
-  photo_url  VARCHAR(500) NULL,
-  created_at DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3)
+  id          VARCHAR(36)  NOT NULL PRIMARY KEY,
+  name        VARCHAR(150) NOT NULL,
+  bio         TEXT         NULL,
+  photo_url   VARCHAR(500) NULL,
+  created_at  DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3)
 ) ENGINE=InnoDB;
 
 -- ============================================================
@@ -47,27 +48,29 @@ CREATE TABLE events (
   banner_url     VARCHAR(500) NULL,
   status         ENUM('DRAFT', 'PUBLISHED', 'ARCHIVED') NOT NULL DEFAULT 'DRAFT',
   sales_closed   BOOLEAN      NOT NULL DEFAULT FALSE,
+  is_seated      BOOLEAN      NOT NULL DEFAULT TRUE,
   created_by_id  VARCHAR(36)  NOT NULL,
   created_at     DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   updated_at     DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
 
-  CONSTRAINT fk_events_created_by
+  CONSTRAINT fk_events_creator
     FOREIGN KEY (created_by_id) REFERENCES users(id)
     ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB;
 
-CREATE INDEX idx_events_created_by ON events(created_by_id);
+CREATE INDEX idx_events_date ON events(event_date);
+CREATE INDEX idx_events_status ON events(status);
 
 -- ============================================================
--- 4. EVENT_ARTISTS (tabel relasi many-to-many, wajib soal)
+-- 4. EVENT_ARTISTS (relasi many-to-many)
 -- ============================================================
 CREATE TABLE event_artists (
-  event_id      VARCHAR(36) NOT NULL,
-  artist_id     VARCHAR(36) NOT NULL,
-  is_headliner  BOOLEAN     NOT NULL DEFAULT FALSE,
+  event_id     VARCHAR(36) NOT NULL,
+  artist_id    VARCHAR(36) NOT NULL,
+  is_headliner BOOLEAN     NOT NULL DEFAULT FALSE,
 
   PRIMARY KEY (event_id, artist_id),
-
+  
   CONSTRAINT fk_event_artists_event
     FOREIGN KEY (event_id) REFERENCES events(id)
     ON DELETE CASCADE ON UPDATE CASCADE,
@@ -81,12 +84,17 @@ CREATE TABLE event_artists (
 -- 5. TICKET_CATEGORIES (wajib soal — CRUD Kategori Tiket + kuota)
 -- ============================================================
 CREATE TABLE ticket_categories (
-  id           VARCHAR(36)   NOT NULL PRIMARY KEY,
-  event_id     VARCHAR(36)   NOT NULL,
-  name         VARCHAR(100)  NOT NULL,
-  price        DECIMAL(12,2) NOT NULL,
-  total_seats  INT           NOT NULL,
-  created_at   DATETIME(3)   NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  id               VARCHAR(36)   NOT NULL PRIMARY KEY,
+  event_id         VARCHAR(36)   NOT NULL,
+  name             VARCHAR(100)  NOT NULL,
+  price            DECIMAL(12,2) NOT NULL,
+  total_seats      INT           NOT NULL,
+  sales_start_date      DATETIME(3)   NULL,
+  sales_end_date        DATETIME(3)   NULL,
+  early_bird_price      DECIMAL(12,2) NULL,
+  early_bird_start_date DATETIME(3)   NULL,
+  early_bird_end_date   DATETIME(3)   NULL,
+  created_at            DATETIME(3)   NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
 
   CONSTRAINT fk_ticket_categories_event
     FOREIGN KEY (event_id) REFERENCES events(id)
@@ -120,15 +128,18 @@ CREATE INDEX idx_seats_status ON seats(status);
 -- 7. ORDERS
 -- ============================================================
 CREATE TABLE orders (
-  id             VARCHAR(36)   NOT NULL PRIMARY KEY,
-  order_number   VARCHAR(50)   NOT NULL UNIQUE,
-  customer_id    VARCHAR(36)   NOT NULL,
-  total_amount   DECIMAL(12,2) NOT NULL,
-  status         ENUM('PENDING', 'PAID', 'CANCELLED', 'EXPIRED') NOT NULL DEFAULT 'PENDING',
-  payment_proof  VARCHAR(500)  NULL,
-  expires_at     DATETIME(3)   NOT NULL,
-  created_at     DATETIME(3)   NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-  updated_at     DATETIME(3)   NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  id                VARCHAR(36)   NOT NULL PRIMARY KEY,
+  order_number      VARCHAR(50)   NOT NULL UNIQUE,
+  customer_id       VARCHAR(36)   NOT NULL,
+  total_amount      DECIMAL(12,2) NOT NULL,
+  status            ENUM('PENDING', 'PAID', 'CANCELLED', 'EXPIRED') NOT NULL DEFAULT 'PENDING',
+  payment_proof     VARCHAR(500)  NULL,
+  payment_method    ENUM('MANUAL_TRANSFER', 'DOKU_VA', 'DOKU_QRIS', 'DOKU_EWALLET') NOT NULL DEFAULT 'MANUAL_TRANSFER',
+  doku_reference_id VARCHAR(100)  NULL UNIQUE,
+  payment_channel   VARCHAR(50)   NULL,
+  expires_at        DATETIME(3)   NOT NULL,
+  created_at        DATETIME(3)   NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at        DATETIME(3)   NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
 
   CONSTRAINT fk_orders_customer
     FOREIGN KEY (customer_id) REFERENCES users(id)
@@ -144,7 +155,8 @@ CREATE INDEX idx_orders_status ON orders(status);
 CREATE TABLE tickets (
   id                    VARCHAR(36)  NOT NULL PRIMARY KEY,
   order_id              VARCHAR(36)  NOT NULL,
-  seat_id               VARCHAR(36)  NOT NULL UNIQUE,
+  category_id           VARCHAR(36)  NOT NULL,
+  seat_id               VARCHAR(36)  NULL UNIQUE,
   ticket_code           VARCHAR(50)  NOT NULL UNIQUE,
   status                ENUM('ACTIVE', 'CHECKED_IN', 'CANCELLED') NOT NULL DEFAULT 'ACTIVE',
   checked_in_at         DATETIME(3)  NULL,
@@ -154,6 +166,10 @@ CREATE TABLE tickets (
   CONSTRAINT fk_tickets_order
     FOREIGN KEY (order_id) REFERENCES orders(id)
     ON DELETE CASCADE ON UPDATE CASCADE,
+
+  CONSTRAINT fk_tickets_category
+    FOREIGN KEY (category_id) REFERENCES ticket_categories(id)
+    ON DELETE RESTRICT ON UPDATE CASCADE,
 
   CONSTRAINT fk_tickets_seat
     FOREIGN KEY (seat_id) REFERENCES seats(id)
@@ -200,10 +216,3 @@ CREATE TABLE audit_logs (
 ) ENGINE=InnoDB;
 
 CREATE INDEX idx_audit_logs_user ON audit_logs(user_id);
-
--- ============================================================
--- SEED DATA MINIMAL (opsional — akun admin awal untuk testing)
--- Ganti hash password di bawah dengan hasil bcrypt asli sebelum dipakai
--- ============================================================
--- INSERT INTO users (id, email, password, full_name, role)
--- VALUES (UUID(), 'admin@visceral.co', '$2b$10$ganti_dengan_hash_bcrypt', 'Superadmin VISCERAL.CO', 'SUPERADMIN');

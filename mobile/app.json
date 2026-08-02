@@ -1,0 +1,49 @@
+{
+  "expo": {
+    "name": "VISCERAL.CO",
+    "slug": "visceral-co",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "visceral",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.visceral.co"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#14110F",
+        "foregroundImage": "./assets/icon.png"
+      },
+      "package": "com.visceral.co"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-web-browser",
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#14110F",
+          "image": "./assets/icon.png",
+          "imageWidth": 120
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Izinkan VISCERAL.CO mengakses kamera untuk scan QR tiket."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Izinkan VISCERAL.CO mengakses galeri untuk upload foto profil."
+        }
+      ]
+    ]
+  }
+}
