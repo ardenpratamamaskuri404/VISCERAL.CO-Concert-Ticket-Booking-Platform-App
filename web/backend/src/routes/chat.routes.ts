@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { prisma } from '../config/db';
 import { authMiddleware } from '../middlewares/auth.middleware';
 
-const chatRoutes = new Hono();
+const chatRoutes = new Hono<{ Variables: { user: any } }>();
 
 // Get chat history
 chatRoutes.get('/', authMiddleware, async (c) => {

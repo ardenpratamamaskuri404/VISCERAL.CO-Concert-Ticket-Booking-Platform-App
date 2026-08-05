@@ -42,12 +42,14 @@ export default function ChatScreen() {
     setMessage(''); // Optimistic clear
 
     try {
-      const res = await api.post('/chat', { message: msgText });
-      // We rely on the socket event to actually update the list
-      // which is handled in AppContext
+      const socket = getSocket();
+      socket.emit('send_chat_message', {
+        senderId: currentUser?.id,
+        message: msgText,
+        senderRole: currentUser?.role || 'CUSTOMER'
+      });
     } catch (e) {
       console.error('Failed to send message:', e);
-      // Put message back if failed
       setMessage(msgText);
     }
   };

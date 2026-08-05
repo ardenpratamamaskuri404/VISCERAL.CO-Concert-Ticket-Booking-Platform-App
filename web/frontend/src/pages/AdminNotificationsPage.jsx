@@ -6,7 +6,7 @@ import { Bell, UserPlus, Ticket, Sparkles, CheckCircle2, History } from 'lucide-
 import api from '../api/axios';
 
 export default function AdminNotificationsPage() {
-  const { currentUser, setUnreadNotificationCount } = useStore();
+  const { currentUser, setUnreadNotificationCount, markAllNotificationsRead } = useStore();
   const [notifications, setNotifications] = useState([]);
 
   useEffect(() => {
@@ -49,6 +49,7 @@ export default function AdminNotificationsPage() {
     try {
       await api.put('/notifications/read-all');
       setUnreadNotificationCount(0);
+      markAllNotificationsRead();
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
     } catch (error) {
       console.error('Failed to mark all as read', error);

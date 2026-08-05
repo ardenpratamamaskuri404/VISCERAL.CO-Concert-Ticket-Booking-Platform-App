@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
 import * as Clipboard from 'expo-clipboard';
 import { Colors } from '../../src/constants/theme';
 import GoldButton from '../../src/components/GoldButton';
@@ -18,30 +19,44 @@ export default function PaymentScreen() {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const isRedirecting = useRef(false);
+
+  const handleSuccess = () => {
+    if (isRedirecting.current) return;
+    isRedirecting.current = true;
+    router.replace(`/order-success/${orderId}`);
+  };
+
   useEffect(() => {
     fetchOrder();
 
     // Listen to real-time payment status updates
     const socket = getSocket();
-    socket.on('order_paid', (data: { orderId: string }) => {
-      if (data.orderId === orderId) {
-        // Payment success!
-        router.replace(`/order-success/${orderId}`);
+    socket.on('order_paid', (data: { orderId?: string, id?: string }) => {
+      if (data.orderId === orderId || data.id === orderId) {
+        handleSuccess();
       }
     });
 
+    // Set up polling as a fallback in case socket disconnects while app is in background
+    const pollInterval = setInterval(() => {
+      fetchOrder();
+    }, 3000);
+
     return () => {
       socket.off('order_paid');
+      clearInterval(pollInterval);
     };
   }, [orderId]);
 
   const fetchOrder = async () => {
+    if (isRedirecting.current) return;
     try {
       const res = await api.get(`/orders/${orderId}`);
       if (res.data?.data) {
         setOrder(res.data.data);
         if (res.data.data.status === 'PAID') {
-          router.replace(`/order-success/${orderId}`);
+          handleSuccess();
         }
       }
     } catch (e) {
@@ -56,9 +71,10 @@ export default function PaymentScreen() {
 
     if (order.paymentMethod.startsWith('DOKU')) {
       try {
-        const res = await api.post(`/payment/doku/checkout`, { orderId: order.id });
-        if (res.data?.paymentUrl) {
-          await WebBrowser.openBrowserAsync(res.data.paymentUrl);
+        const returnUrl = Linking.createURL(`/payment/${order.id}`);
+        const res = await api.post(`/orders/${order.id}/generate-doku`, { returnUrl });
+        if (res.data?.dokuUrl) {
+          await WebBrowser.openBrowserAsync(res.data.dokuUrl);
           // When user closes browser, re-check status
           fetchOrder();
         } else {

@@ -15,16 +15,18 @@ export const generateDokuSignature = (body: any, clientId: string, requestId: st
   return `HMACSHA256=${crypto.enc.Base64.stringify(hmac)}`;
 };
 
-export const createDokuPayment = async (order: any, totalAmount: number) => {
+export const createDokuPayment = async (order: any, totalAmount: number, callbackUrl?: string) => {
   const requestId = crypto.lib.WordArray.random(16).toString();
   const requestTimestamp = new Date().toISOString().slice(0, 19) + 'Z';
+
+  const defaultCallback = `http://localhost:5173/order-success/${order.id}`;
 
   const requestBody = {
     order: {
       amount: totalAmount,
       invoice_number: `${order.orderNumber}_R${Date.now()}`,
       currency: "IDR",
-      callback_url: `http://localhost:5173/order-success/${order.id}`
+      callback_url: callbackUrl || defaultCallback
     },
     payment: {
       payment_due_date: 5

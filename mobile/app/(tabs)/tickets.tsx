@@ -32,23 +32,34 @@ export default function TicketsScreen() {
     }
   };
 
-  const renderOrder = ({ item }: { item: Order }) => {
-    const badge = getStatusBadge(item.status);
-    const date = item.eventDate ? dayjs(item.eventDate).format('DD MMM YYYY') : '';
+  const renderItem = ({ item }: { item: any }) => {
+    const order = item.order;
+    const date = new Date(order.createdAt).toLocaleDateString('id-ID', {
+      day: 'numeric', month: 'short', year: 'numeric'
+    });
+
+    const isPaid = order.status === 'PAID';
+    const isPending = order.status === 'PENDING';
+    const isCheckedIn = item.status === 'CHECKED_IN';
     
+    let badge = { bg: Colors.error + '20', text: Colors.error, label: 'EXPIRED' };
+    if (isCheckedIn) badge = { bg: Colors.oxblood + '20', text: Colors.oxblood, label: 'TERPAKAI' };
+    else if (isPaid) badge = { bg: Colors.success + '20', text: Colors.success, label: 'LUNAS' };
+    else if (isPending) badge = { bg: Colors.gold + '20', text: Colors.gold, label: 'PENDING' };
+
     return (
-      <TouchableOpacity
+      <TouchableOpacity 
+        activeOpacity={0.8}
         onPress={() => {
-          if (item.status === 'PENDING') {
-            router.push(`/payment/${item.id}`);
-          } else {
-            // Tampilkan tiket pertama
-            if (item.tickets && item.tickets.length > 0) {
-              router.push(`/ticket/${item.tickets[0].id}`);
-            }
+          if (isPaid) {
+            // Langsung ke halaman detail tiket (barcode), bukan ke halaman success lagi
+            router.push(`/ticket/${item.id}`);
+          } else if (isPending) {
+            router.push(`/payment/${order.id}`);
           }
         }}
         style={{
+          width: '100%',
           backgroundColor: Colors.darkCard,
           borderRadius: 20,
           padding: 16,
@@ -58,15 +69,15 @@ export default function TicketsScreen() {
         }}
       >
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-          <View>
+          <View style={{ flex: 1, paddingRight: 12 }}>
             <Text style={{ color: Colors.textMuted, fontSize: 10, fontWeight: '700', marginBottom: 4 }}>
-              ORDER {item.orderNumber}
+              ORDER {order.orderNumber}
             </Text>
-            <Text style={{ color: Colors.white, fontSize: 16, fontWeight: '800' }}>
-              {item.eventTitle || 'Konser Visceral'}
+            <Text style={{ color: Colors.white, fontSize: 16, fontWeight: '800' }} numberOfLines={2}>
+              {order.eventTitle || 'Konser Visceral'}
             </Text>
-            <Text style={{ color: Colors.textMuted, fontSize: 12, marginTop: 4 }}>
-              {date} • {item.venueName}
+            <Text style={{ color: Colors.textMuted, fontSize: 12, marginTop: 4 }} numberOfLines={1}>
+              {date} • Kursi: <Text style={{ color: Colors.gold, fontWeight: 'bold' }}>{item.seatNumber || 'FESTIVAL'}</Text>
             </Text>
           </View>
           <View style={{ backgroundColor: badge.bg, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 }}>
@@ -76,14 +87,14 @@ export default function TicketsScreen() {
 
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 12, borderTopWidth: 1, borderTopColor: Colors.darkBorder }}>
           <View>
-            <Text style={{ color: Colors.textMuted, fontSize: 10, marginBottom: 2 }}>Total Harga</Text>
+            <Text style={{ color: Colors.textMuted, fontSize: 10, marginBottom: 2 }}>Harga Tiket</Text>
             <Text style={{ color: Colors.gold, fontSize: 14, fontWeight: '900' }}>
-              Rp {item.totalAmount.toLocaleString('id-ID')}
+              Rp {(order.totalAmount / order.tickets.length).toLocaleString('id-ID')}
             </Text>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             <Text style={{ color: Colors.gold, fontSize: 12, fontWeight: '700' }}>
-              {item.status === 'PENDING' ? 'Bayar Sekarang' : 'Lihat Tiket'}
+              {isPending ? 'Bayar Sekarang' : 'Lihat Tiket'}
             </Text>
             <Ionicons name="chevron-forward" size={16} color={Colors.gold} />
           </View>
@@ -100,11 +111,11 @@ export default function TicketsScreen() {
       </View>
 
       <FlatList
-        data={orders}
+        data={orders.flatMap(o => o.tickets.map(t => ({ ...t, order: o })))}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 100 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.gold} />}
-        renderItem={renderOrder}
+        renderItem={renderItem}
         ListEmptyComponent={
           <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 60 }}>
             <Ionicons name="ticket-outline" size={64} color={Colors.darkBorder} style={{ marginBottom: 16 }} />

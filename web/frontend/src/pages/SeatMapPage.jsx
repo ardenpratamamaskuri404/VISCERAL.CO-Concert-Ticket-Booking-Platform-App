@@ -20,6 +20,13 @@ export default function SeatMapPage() {
   const event = events.find((e) => e.id === id) || events[0];
   const category = event.categories?.find((c) => c.id === selectedCatId) || event.categories?.[0];
 
+  const isStandingCat = (() => {
+    if (!category) return false;
+    const n = category.name.toLowerCase();
+    return n.includes('standing') || n.includes('festival') || n.includes('general') || n.includes('presale') || n.includes('pass') || n.includes('ga');
+  })();
+  const requiresSeat = event.isSeated && !isStandingCat;
+
   const [seats, setSeats] = useState(category?.seats || []);
   const [selectedSeats, setSelectedSeats] = useState([]);
   const [standingQty, setStandingQty] = useState(1);
@@ -46,11 +53,11 @@ export default function SeatMapPage() {
 
   useEffect(() => {
     let interval;
-    if ((selectedSeats.length > 0 || (standingQty > 0 && !event.isSeated)) && lockTimer > 0) {
+    if ((selectedSeats.length > 0 || (standingQty > 0 && !requiresSeat)) && lockTimer > 0) {
       interval = setInterval(() => setLockTimer((prev) => prev - 1), 1000);
     }
     return () => clearInterval(interval);
-  }, [selectedSeats, standingQty, event.isSeated, lockTimer]);
+  }, [selectedSeats, standingQty, requiresSeat, lockTimer]);
 
   const handleProceedToCheckout = () => {
     let orderTickets = [];
@@ -65,7 +72,7 @@ export default function SeatMapPage() {
     
     const activePrice = isEarlyBirdActive(category) ? Number(category.earlyBirdPrice) : Number(category.price);
 
-    if (event.isSeated) {
+    if (requiresSeat) {
       if (selectedSeats.length === 0) return;
       selectedSeats.forEach(s => orderTickets.push({
         categoryId: category.id,
@@ -113,7 +120,7 @@ export default function SeatMapPage() {
   };
   const currentPrice = isEarlyBird() ? Number(category.earlyBirdPrice) : Number(category.price);
 
-  const totalSelection = event.isSeated ? selectedSeats.length : standingQty;
+  const totalSelection = requiresSeat ? selectedSeats.length : standingQty;
   const totalPrice = totalSelection * currentPrice;
 
   return (
@@ -156,12 +163,12 @@ export default function SeatMapPage() {
                     (Rp {currentPrice.toLocaleString('id-ID')})
                   </span>
                 </p>
-                {!event.isSeated && (
+                {!requiresSeat && (
                   <p className="text-xs text-gold mt-1 font-bold">Sisa Kuota: {category.availableSeats} Tiket</p>
                 )}
               </div>
 
-              {!event.isSeated ? (
+              {!requiresSeat ? (
                 <div className="flex flex-col items-center justify-center py-10 space-y-8">
                   <div className="w-full h-32 rounded-2xl bg-gradient-to-t from-gray-200 to-gray-100 dark:from-obsidian-surface dark:to-obsidian-card border border-gray-300 dark:border-obsidian-border flex items-center justify-center overflow-hidden relative">
                      <div className="absolute inset-0 opacity-10 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-gold via-transparent to-transparent"></div>
@@ -245,7 +252,7 @@ export default function SeatMapPage() {
                   Ringkasan Pesanan
                 </h3>
 
-                {(event.isSeated ? selectedSeats.length > 0 : standingQty > 0) ? (
+                {(requiresSeat ? selectedSeats.length > 0 : standingQty > 0) ? (
                   <div className="space-y-4">
                     <div className="p-4 rounded-2xl bg-gold/10 border border-gold/30">
                       <div className="flex justify-between items-center mb-1">
@@ -256,7 +263,7 @@ export default function SeatMapPage() {
                         <span className="text-xs text-gray-500 dark:text-gray-400">Kategori:</span>
                         <span className="text-xs font-bold">{category.name}</span>
                       </div>
-                      {event.isSeated && (
+                      {requiresSeat && (
                         <div className="flex justify-between items-start mt-2 pt-2 border-t border-gold/20">
                           <span className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Kursi:</span>
                           <div className="flex flex-wrap gap-1 justify-end flex-1 ml-4">

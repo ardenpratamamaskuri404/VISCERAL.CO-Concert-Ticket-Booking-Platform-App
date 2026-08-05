@@ -22,13 +22,12 @@
     "plugins": [
       "expo-router",
       "expo-secure-store",
-      "expo-web-browser",
       "expo-font",
       [
         "expo-splash-screen",
         {
           "backgroundColor": "#14110F",
-          "image": "./assets/icon.png",
+          "image": "./assets/logo.png",
           "imageWidth": 120
         }
       ],

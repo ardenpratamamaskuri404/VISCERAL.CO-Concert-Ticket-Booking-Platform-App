@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform
 import { useRouter } from 'expo-router';
 import { Colors } from '../../src/constants/theme';
 import GoldButton from '../../src/components/GoldButton';
+import VisceralLogo from '../../src/components/VisceralLogo';
 import { useAuth } from '../../src/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -15,6 +16,25 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  
+  // Easter Egg Logic
+  const [tapCount, setTapCount] = useState(0);
+  const [lastTapTime, setLastTapTime] = useState(0);
+
+  const handleLogoTap = () => {
+    const now = Date.now();
+    if (now - lastTapTime > 500) {
+      setTapCount(1); // reset if too slow
+    } else {
+      const newCount = tapCount + 1;
+      setTapCount(newCount);
+      if (newCount >= 5) {
+        setTapCount(0);
+        router.push('/(auth)/admin-login');
+      }
+    }
+    setLastTapTime(now);
+  };
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -30,7 +50,11 @@ export default function LoginScreen() {
     setLoading(false);
 
     if (res.success) {
-      router.replace('/(tabs)');
+      if (res.user?.role === 'ADMIN' || res.user?.role === 'SUPERADMIN') {
+        router.replace('/(admin)/scanner');
+      } else {
+        router.replace('/(tabs)');
+      }
     } else {
       setError(res.error || 'Login gagal');
     }
@@ -43,6 +67,13 @@ export default function LoginScreen() {
     >
       <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 24, justifyContent: 'center' }}>
         
+        {/* Logo with Easter Egg */}
+        <View style={{ alignItems: 'center', marginBottom: 32 }}>
+          <TouchableOpacity activeOpacity={1} onPress={handleLogoTap}>
+            <VisceralLogo size={120} />
+          </TouchableOpacity>
+        </View>
+
         <View style={{ marginBottom: 40 }}>
           <Text style={{ color: Colors.gold, fontSize: 32, fontWeight: '900', marginBottom: 8 }}>Masuk</Text>
           <Text style={{ color: Colors.textMuted, fontSize: 16 }}>Selamat datang kembali di VISCERAL.CO</Text>
@@ -123,10 +154,6 @@ export default function LoginScreen() {
               <Text style={{ color: Colors.gold, fontSize: 14, fontWeight: '800' }}>Daftar sekarang</Text>
             </TouchableOpacity>
           </View>
-          
-          <TouchableOpacity style={{ marginTop: 20, alignItems: 'center' }}>
-             <Text style={{ color: Colors.textMuted, fontSize: 12, textDecorationLine: 'underline' }}>Login sebagai Staff (Scanner)</Text>
-          </TouchableOpacity>
 
         </View>
 

@@ -1,10 +1,11 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, Animated, Dimensions } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Colors } from '../../src/constants/theme';
 import GoldButton from '../../src/components/GoldButton';
 import { Ionicons } from '@expo/vector-icons';
 import LottieView from 'lottie-react-native';
+import api from '../../src/api/axios';
 
 const { width } = Dimensions.get('window');
 
@@ -14,8 +15,18 @@ export default function OrderSuccessScreen() {
 
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
+  const [ticketId, setTicketId] = useState<string | null>(null);
 
   useEffect(() => {
+    // Fetch order to get ticket ID for quick navigation
+    api.get(`/orders/${orderId}`)
+      .then(res => {
+        const order = res.data?.data;
+        if (order && order.tickets && order.tickets.length > 0) {
+          setTicketId(order.tickets[0].id);
+        }
+      })
+      .catch(err => console.error('Error fetching order tickets', err));
     Animated.sequence([
       Animated.spring(scaleAnim, {
         toValue: 1,
@@ -63,13 +74,19 @@ export default function OrderSuccessScreen() {
 
       <Animated.View style={{ opacity: opacityAnim, width: '100%', gap: 16 }}>
         <GoldButton 
-          title="Lihat Tiket Saya" 
-          onPress={() => router.replace('/(tabs)/tickets')} 
+          title="Lihat Barcode Tiket" 
+          onPress={() => {
+            if (ticketId) {
+              router.replace(`/ticket/${ticketId}`);
+            } else {
+              router.replace('/(tabs)/tickets');
+            }
+          }} 
           size="lg"
         />
         <GoldButton 
-          title="Kembali ke Beranda" 
-          onPress={() => router.replace('/(tabs)')} 
+          title="Daftar Semua Tiket Saya" 
+          onPress={() => router.replace('/(tabs)/tickets')} 
           variant="outline"
           size="lg"
         />

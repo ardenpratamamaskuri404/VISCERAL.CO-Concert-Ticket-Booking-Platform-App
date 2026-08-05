@@ -3,7 +3,7 @@ import { prisma } from '../config/db';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
-const authRoutes = new Hono();
+const authRoutes = new Hono<{ Variables: { user: any } }>();
 const JWT_SECRET = process.env.JWT_SECRET || 'visceral_secret_key';
 
 // REGISTER

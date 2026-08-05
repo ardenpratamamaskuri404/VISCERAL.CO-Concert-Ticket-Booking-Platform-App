@@ -13,7 +13,8 @@ AI cenderung mengarang kalau:
 
 Prinsip dasar: **AI hanya boleh mengacu ke 4 dokumen ini sebagai satu-satunya sumber kebenaran** — `prd.md` (fitur & requirement), `schema.sql`/Prisma schema (struktur data), `design.md` + `stitch.md` (tampilan). Kalau ada yang belum diatur di situ, AI harus nanya, bukan nebak.
 
-> **Khusus integrasi pihak ketiga (Doku Sandbox & Fonnte)**: `prd.md` Bagian 3.6 & 3.7 cuma berisi *alur* dan *field* yang dipakai sistem — bentuk endpoint/payload/header request-response persisnya **harus dicek langsung ke dokumentasi resmi** (`https://developers.doku.com` dan `https://fonnte.com`) saat implementasi, bukan ditebak dari draft ini. Kalau AI mengarang nama field payload Doku/Fonnte tanpa merujuk dokumentasi resminya, itu tetap dianggap halu meski nama fitur/alurnya benar.
+> **Khusus integrasi pihak ketiga (Doku Sandbox & Fonnte)**: `prd.md` Bagian 3.6 & 3.7 cuma berisi *alur* dan *field* yang dipakai sistem. Saat ini DOKU VA dan Fonnte OTP telah disimulasikan secara internal (MVP), sehingga AI tidak boleh membuat request HTTP baru ke pihak eksternal tersebut kecuali secara eksplisit diinstruksikan.
+> **Khusus Identitas Visual & Peran**: Selalu gunakan logo resmi `VisceralLogo` (SVG) untuk React Native dan pastikan tidak menambahkan fitur Admin/Staff di aplikasi Mobile karena Mobile bersifat eksklusif untuk Customer.
 
 ---
 
@@ -87,3 +88,12 @@ Kalau waktunya terbatas dan cuma bisa nambah 1-2 hal dulu dari Bagian 4, priorit
 2. **Test suite untuk FR kritikal** (4.5) — paling efektif nahan AI dari halu di logic penting (kuota, pembayaran)
 
 Sisanya (OpenAPI, Postman, .env.example, prompt template) bisa menyusul begitu development jalan.
+
+
+## Status Perbaikan & Pengembangan Terkini (Agustus 2026)
+
+1. **Dokumentasi Canva**: Telah ditambahkan folder docs/canva/ berisi proposal-presentasi.md yang merangkum keseluruhan proyek (Latar Belakang, Tujuan, Fitur, Workflow UML/DFD, UI/UX) untuk pembuatan PPT/Proposal Canva.
+2. **Penyempurnaan Fitur Scanner (Web & Mobile)**: Scanner kini menampilkan data riwayat secara komprehensif, mencakup Nama Penonton, Kategori, Nomor Kursi, Tanggal Acara, serta Jam Open Gate secara realtime.
+3. **Modernisasi UI/UX Mobile**: Pembaruan sistem navigasi menggunakan gaya *Floating Pill Tab Bar* eksklusif yang menyesuaikan *theme* Visceral (Gold & Obsidian).
+4. **Real-time Chat & WebSockets**: Kesalahan rute API HTTP POST pada fitur chat mobile telah dialihkan sepenuhnya menggunakan protokol Socket.IO untuk menjamin obrolan instan dua arah.
+5. **Pembersihan Bug & Code Quality**: Berhasil menyelesaikan ratusan issue/error TypeScript (terutama pada *middleware* otentikasi Hono c.get('user') dan validasi tipe) di direktori web/backend/src/routes/ hingga tercapai *0 errors*.

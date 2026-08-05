@@ -104,9 +104,10 @@ export default function AdminReportsPage() {
                       <td className="py-3.5 font-extrabold text-gray-900 dark:text-white">Rp {o.totalAmount.toLocaleString('id-ID')}</td>
                       <td className="py-3.5">
                         <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase ${
+                          o.tickets?.[0]?.status === 'CHECKED_IN' ? 'bg-oxblood/20 text-oxblood border border-oxblood/40' :
                           o.status === 'PAID' ? 'bg-gold/20 text-gold border border-gold/30' : 'bg-yellow-500/20 text-yellow-500'
                         }`}>
-                          {o.status}
+                          {o.tickets?.[0]?.status === 'CHECKED_IN' ? 'TERPAKAI' : o.status}
                         </span>
                       </td>
                     </tr>

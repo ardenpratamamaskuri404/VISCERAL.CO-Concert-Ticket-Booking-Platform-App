@@ -11,11 +11,12 @@ const getBaseUrl = () => {
 };
 
 const api = axios.create({
-  baseURL: getBaseUrl(),
-  timeout: 15000,
+  // UPDATE URL DI BAWAH INI DENGAN URL NGROK YANG BARU (lihat di terminal ngrok)
+  baseURL: 'https://wisdom-detection-uncharted.ngrok-free.dev/api',
+  timeout: 10000,
   headers: {
-    'Content-Type': 'application/json',
-  },
+    'ngrok-skip-browser-warning': 'true' // Penting agar API tidak di-blokir oleh halaman peringatan ngrok
+  }
 });
 
 // Request interceptor — attach JWT token

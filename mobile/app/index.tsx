@@ -1,9 +1,10 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, Animated, Dimensions, Image } from 'react-native';
+import { View, Text, Animated, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../src/context/AuthContext';
 import { Colors } from '../src/constants/theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import VisceralLogo from '../src/components/VisceralLogo';
 
 const { width, height } = Dimensions.get('window');
 
@@ -15,9 +16,9 @@ export default function SplashScreen() {
   const logoOpacity = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(0)).current;
   const taglineOpacity = useRef(new Animated.Value(0)).current;
+  const lineWidth = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Animate logo
     Animated.sequence([
       Animated.parallel([
         Animated.spring(logoScale, {
@@ -32,18 +33,26 @@ export default function SplashScreen() {
           useNativeDriver: true,
         }),
       ]),
-      // Pulse effect
+      // Pulse glow effect
       Animated.timing(pulseAnim, {
         toValue: 1,
         duration: 600,
         useNativeDriver: true,
       }),
-      // Show tagline
-      Animated.timing(taglineOpacity, {
-        toValue: 1,
-        duration: 400,
-        useNativeDriver: true,
-      }),
+      // Show tagline + line
+      Animated.parallel([
+        Animated.timing(taglineOpacity, {
+          toValue: 1,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+        Animated.spring(lineWidth, {
+          toValue: 1,
+          tension: 50,
+          friction: 8,
+          useNativeDriver: true,
+        }),
+      ]),
     ]).start();
   }, []);
 
@@ -54,14 +63,10 @@ export default function SplashScreen() {
       if (isLoggedIn) {
         router.replace('/(tabs)');
       } else {
-        const hasOnboarded = await AsyncStorage.getItem('visceral_onboarded');
-        if (hasOnboarded) {
-          router.replace('/(auth)/login');
-        } else {
-          router.replace('/onboarding');
-        }
+        // Force show onboarding for testing
+        router.replace('/onboarding');
       }
-    }, 2500);
+    }, 4500);
 
     return () => clearTimeout(timer);
   }, [isLoading, isLoggedIn]);
@@ -98,7 +103,7 @@ export default function SplashScreen() {
         }}
       />
 
-      {/* Logo */}
+      {/* SVG Logo */}
       <Animated.View
         style={{
           opacity: logoOpacity,
@@ -106,15 +111,11 @@ export default function SplashScreen() {
           alignItems: 'center',
         }}
       >
-        <Image
-          source={require('../assets/icon.png')}
-          style={{ width: 100, height: 100, borderRadius: 24 }}
-          resizeMode="contain"
-        />
+        <VisceralLogo size={180} />
       </Animated.View>
 
       {/* Brand Name */}
-      <Animated.View style={{ opacity: taglineOpacity, marginTop: 24, alignItems: 'center' }}>
+      <Animated.View style={{ opacity: taglineOpacity, marginTop: 28, alignItems: 'center' }}>
         <Text
           style={{
             color: Colors.gold,
@@ -147,6 +148,11 @@ export default function SplashScreen() {
           backgroundColor: Colors.oxblood,
           marginTop: 20,
           borderRadius: 1,
+          transform: [
+            {
+              scaleX: lineWidth,
+            },
+          ],
         }}
       />
     </View>

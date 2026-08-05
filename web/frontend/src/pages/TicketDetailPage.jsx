@@ -79,8 +79,8 @@ export default function TicketDetailPage() {
               </div>
             </div>
 
-            <span className="bg-gold/20 text-gold border border-gold/40 text-[10px] font-extrabold px-3 py-1 rounded-full uppercase flex items-center gap-1">
-              <ShieldCheck className="w-3.5 h-3.5" /> STATUS: {ticketFound.status}
+            <span className={`text-[10px] font-extrabold px-3 py-1 rounded-full uppercase flex items-center gap-1 ${ticketFound.status === 'CHECKED_IN' ? 'bg-oxblood/20 text-oxblood border border-oxblood/40' : 'bg-gold/20 text-gold border border-gold/40'}`}>
+              <ShieldCheck className="w-3.5 h-3.5" /> STATUS: {ticketFound.status === 'CHECKED_IN' ? 'TERPAKAI' : ticketFound.status}
             </span>
           </div>
 

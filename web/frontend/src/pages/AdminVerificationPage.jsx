@@ -111,6 +111,7 @@ export default function AdminVerificationPage() {
                       const isPending = ord.status === 'PENDING';
                       const isPaid = ord.status === 'PAID';
                       const isDoku = ord.paymentMethod?.includes('DOKU');
+                      const isCheckedIn = ord.tickets?.[0]?.status === 'CHECKED_IN';
 
                       return (
                         <tr key={ord.id} className="hover:bg-gray-50 dark:hover:bg-obsidian-surface transition-colors">
@@ -144,7 +145,11 @@ export default function AdminVerificationPage() {
                             )}
                           </td>
                           <td className="py-4">
-                            {isPaid ? (
+                            {isCheckedIn ? (
+                              <span className="bg-oxblood/20 text-oxblood border border-oxblood/40 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase">
+                                TERPAKAI
+                              </span>
+                            ) : isPaid ? (
                               <span className="bg-gold/20 text-gold border border-gold/40 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase">
                                 PAID (Disetujui)
                               </span>

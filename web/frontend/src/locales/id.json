@@ -1,0 +1,16 @@
+{
+  "nav": {
+    "home": "Beranda",
+    "explore": "Jelajah Konser",
+    "about": "Tentang",
+    "myTickets": "Tiket Saya",
+    "adminDashboard": "Dashboard Admin",
+    "login": "Login",
+    "register": "Daftar Akun",
+    "logout": "Logout",
+    "accountSettings": "Pengaturan Akun",
+    "guest": "Tamu",
+    "notif": "Notifikasi",
+    "lang": "Ganti Bahasa"
+  }
+}

@@ -11,12 +11,12 @@ export default function ConcertAtmosphereSection() {
       </div>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         {[
-          { src: 'slank-real.jpg', alt: 'Slank Live', type: 'events' },
+          { src: 'tulus.png', alt: 'Tulus Live', type: 'events' },
           { src: 'so7.jpeg', alt: 'Sheila On 7', type: 'events' },
           { src: 'festival-visceral.jpg', alt: 'Festival Crowd', type: 'events' },
           { src: 'coldplay.jpg', alt: 'Coldplay Concert', type: 'events' },
           { src: 'bruno-mars.jpeg', alt: 'Bruno Mars', type: 'events' },
-          { src: 'blackpink.jpg', alt: 'BLACKPINK', type: 'events' },
+          { src: 'bernadya.jpg', alt: 'Bernadya', type: 'events' },
         ].map((img, i) => (
           <motion.div
             key={i}

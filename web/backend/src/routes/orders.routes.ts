@@ -7,7 +7,7 @@ import { calculateOrderCheckout } from '../services/order.service';
 import { createDokuPayment } from '../services/doku.service';
 import { createNotification } from './notifications.routes';
 
-const ordersRoutes = new Hono();
+const ordersRoutes = new Hono<{ Variables: { user: any } }>();
 
 // Ambil riwayat pesanan (Untuk fitur Tiket Saya)
 ordersRoutes.get('/', async (c) => {
@@ -79,6 +79,57 @@ ordersRoutes.get('/', async (c) => {
   }
 });
 
+// Get Order by ID
+ordersRoutes.get('/:id', async (c) => {
+  try {
+    const orderId = c.req.param('id');
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        customer: true,
+        tickets: {
+          include: {
+            seat: true,
+            category: { include: { event: true } }
+          }
+        }
+      }
+    });
+
+    if (!order) return c.json({ error: 'Pesanan tidak ditemukan' }, 404);
+
+    let eventTitle = 'Unknown Event';
+    let venueName = '';
+    let eventDate = '';
+    if (order.tickets.length > 0 && order.tickets[0].category && order.tickets[0].category.event) {
+      const event = order.tickets[0].category.event;
+      eventTitle = event.title;
+      venueName = event.venueName;
+      eventDate = event.eventDate.toISOString();
+    }
+
+    const formattedOrder = {
+      ...order,
+      customerName: order.customer?.fullName || 'Unknown',
+      eventTitle,
+      venueName,
+      eventDate,
+      tickets: order.tickets.map(t => ({
+        id: t.id,
+        ticketCode: t.ticketCode,
+        seatNumber: t.seat?.seatNumber || 'Festival (Tanpa Kursi)',
+        categoryName: t.category?.name || 'Unknown',
+        status: t.status
+      }))
+    };
+
+    return c.json({ data: formattedOrder });
+  } catch (error) {
+    console.error('Get Order By ID Error:', error);
+    return c.json({ error: 'Gagal memuat detail pesanan' }, 500);
+  }
+});
+
 // Return URL dari Payment Gateway (Mencegah blank screen di Vite karena POST request)
 ordersRoutes.all('/return/:id', (c) => {
   const orderId = c.req.param('id');
@@ -88,7 +139,16 @@ ordersRoutes.all('/return/:id', (c) => {
 // Checkout & Request Doku Payment URL
 ordersRoutes.post('/checkout', authMiddleware, async (c) => {
   try {
-    const { eventId, customerId, customerName, customerEmail, tickets, paymentMethod } = await c.req.json();
+    const body = await c.req.json();
+    const { eventId, customerName, customerEmail, tickets, paymentMethod } = body;
+    
+    // Get customerId from authenticated user if not in body
+    const user = c.get('user');
+    const customerId = body.customerId || user?.id;
+
+    if (!customerId) {
+      return c.json({ success: false, message: 'ID Pelanggan tidak ditemukan' }, 400);
+    }
     
     if (!tickets || tickets.length === 0 || tickets.length > 5) {
       return c.json({ success: false, message: 'Jumlah tiket tidak valid (1-5)' }, 400);
@@ -146,14 +206,41 @@ ordersRoutes.post('/checkout', authMiddleware, async (c) => {
   }
 });
 
+// Mobile Return URL (Menampilkan halaman HTML sederhana agar user bisa menutup WebBrowser)
+ordersRoutes.all('/mobile-return/:id', (c) => {
+  return c.html(`
+    <html>
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+          body { background: #14110F; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; text-align: center; padding: 20px; margin: 0; }
+          .icon { font-size: 50px; margin-bottom: 20px; }
+          h2 { color: #C89B3C; margin-bottom: 10px; }
+          p { color: #A0A0A0; line-height: 1.5; }
+        </style>
+      </head>
+      <body>
+        <div class="icon">✅</div>
+        <h2>Transaksi Diproses</h2>
+        <p>Pembayaran Anda sedang kami konfirmasi dengan DOKU.</p>
+        <p>Silakan tekan tombol <b>Done</b> atau <b>X</b> di pojok layar untuk menutup halaman ini dan kembali ke aplikasi.</p>
+      </body>
+    </html>
+  `);
+});
+
 // Generate Doku URL on demand
 ordersRoutes.post('/:id/generate-doku', authMiddleware, async (c) => {
   try {
     const orderId = c.req.param('id');
+    const body = await c.req.json().catch(() => ({})); // Parse body safely
     const order = await prisma.order.findUnique({ where: { id: orderId } });
     if (!order) return c.json({ success: false, message: 'Pesanan tidak ditemukan' }, 404);
 
-    const dokuRes = await createDokuPayment(order, Number(order.totalAmount));
+    // If mobile sends a direct deep link returnUrl, use it. Otherwise fallback to the HTML bridge page.
+    const mobileCallbackUrl = body.returnUrl || `${process.env.API_URL || 'https://wisdom-detection-uncharted.ngrok-free.dev'}/api/orders/mobile-return/${order.id}`;
+
+    const dokuRes = await createDokuPayment(order, Number(order.totalAmount), mobileCallbackUrl);
     if (dokuRes.success) {
       return c.json({ success: true, dokuUrl: dokuRes.paymentUrl });
     } else {
@@ -229,6 +316,51 @@ ordersRoutes.post('/doku-webhook', async (c) => {
   } catch (error) {
     console.error('Webhook error:', error);
     return c.json({ error: 'Internal Server Error' }, 500);
+  }
+});
+
+// DEV ONLY: Endpoint untuk simulasi pembayaran berhasil (bypass DOKU Webhook)
+ordersRoutes.post('/:id/simulate-pay', async (c) => {
+  try {
+    const orderId = c.req.param('id');
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: { tickets: true }
+    });
+
+    if (order && order.status === 'PENDING') {
+      await prisma.order.update({
+        where: { id: order.id },
+        data: { 
+          status: 'PAID',
+          dokuReferenceId: 'SIMULATED_DOKU_ID',
+          paymentChannel: 'SIMULATION'
+        }
+      });
+
+      for (const ticket of order.tickets) {
+        await prisma.ticket.update({
+          where: { id: ticket.id },
+          data: { status: 'ACTIVE' }
+        });
+        
+        if (ticket.seatId) {
+          await prisma.seat.update({
+            where: { id: ticket.seatId },
+            data: { status: 'SOLD', lockedByUserId: order.customerId }
+          });
+        }
+      }
+
+      // Reload order with updated status
+      const updatedOrder = await prisma.order.findUnique({ where: { id: orderId } });
+      io.emit('order_paid', updatedOrder);
+      
+      return c.json({ success: true, message: 'Simulasi Lunas Berhasil' });
+    }
+    return c.json({ success: false, message: 'Order sudah lunas atau tidak ditemukan' }, 400);
+  } catch (error: any) {
+    return c.json({ success: false, message: error.message }, 500);
   }
 });
 

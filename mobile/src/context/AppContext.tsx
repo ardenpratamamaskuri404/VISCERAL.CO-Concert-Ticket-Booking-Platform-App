@@ -57,6 +57,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         fetchOrders();
       });
 
+      socket.on('ticket_scanned', (ticket: any) => {
+        // Refresh orders when a ticket is checked in so the list shows "TERPAKAI"
+        fetchOrders();
+      });
+
       socket.on('new_chat_message', (msg: ChatMessage) => {
         if (
           msg.receiverId === currentUser?.id ||

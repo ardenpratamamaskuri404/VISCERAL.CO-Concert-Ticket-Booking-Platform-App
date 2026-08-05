@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { Search, Bell, Sun, Moon, ShieldCheck, Sparkles } from 'lucide-react';
 
 export default function AdminTopbar({ title = 'Dashboard Monitoring' }) {
-  const { darkMode, toggleDarkMode, currentUser, unreadNotificationCount } = useStore();
+  const { darkMode, toggleDarkMode, currentUser, unreadCount } = useStore();
 
   return (
     <header className="h-16 bg-white dark:bg-obsidian border-b border-gray-200 dark:border-obsidian-border px-6 flex items-center justify-between sticky top-0 z-30 transition-colors">
@@ -39,9 +39,9 @@ export default function AdminTopbar({ title = 'Dashboard Monitoring' }) {
         {/* Notifications */}
         <Link to="/admin/notifications" className="relative p-2 rounded-full text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-obsidian-surface">
           <Bell className="w-4 h-4" />
-          {unreadNotificationCount > 0 && (
+          {unreadCount > 0 && (
             <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[9px] font-extrabold flex items-center justify-center animate-bounce shadow-sm">
-              {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
+              {unreadCount > 99 ? '99+' : unreadCount}
             </span>
           )}
         </Link>

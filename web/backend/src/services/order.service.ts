@@ -58,8 +58,16 @@ export const calculateOrderCheckout = async (eventId: string, tickets: any[]) =>
     }
     totalAmount += activePrice;
 
-    if (event.isSeated) {
-      if (!t.seatNumber) return { error: 'Nomor kursi wajib dipilih', code: 400 };
+    const catNameLower = category.name.toLowerCase();
+    const isStandingCategory = catNameLower.includes('standing') || 
+                               catNameLower.includes('festival') || 
+                               catNameLower.includes('general') || 
+                               catNameLower.includes('presale') || 
+                               catNameLower.includes('pass') || 
+                               catNameLower.includes('ga');
+
+    if (event.isSeated && !isStandingCategory) {
+      if (!t.seatNumber) return { error: `Nomor kursi wajib dipilih untuk kategori ${category.name}`, code: 400 };
       
       let seat = await prisma.seat.findFirst({
         where: { categoryId: t.categoryId, seatNumber: t.seatNumber }

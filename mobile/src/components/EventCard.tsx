@@ -17,7 +17,7 @@ interface EventCardProps {
 const getImageUrl = (url?: string) => {
   if (!url) return null;
   if (url.startsWith('http')) return url;
-  return `http://10.0.2.2:3005/assets/events/${url}`;
+  return `https://wisdom-detection-uncharted.ngrok-free.dev/assets/events/${url}`;
 };
 
 export default function EventCard({ event, onPress, variant = 'featured' }: EventCardProps) {

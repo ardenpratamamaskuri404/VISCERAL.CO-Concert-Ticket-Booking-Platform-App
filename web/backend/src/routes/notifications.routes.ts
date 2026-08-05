@@ -3,7 +3,7 @@ import { prisma } from '../config/db';
 import { authMiddleware } from '../middlewares/auth.middleware';
 import { io } from '../index'; // Assuming io is exported from index.ts
 
-const notificationsRoutes = new Hono();
+const notificationsRoutes = new Hono<{ Variables: { user: any } }>();
 
 // Get unread notifications count
 notificationsRoutes.get('/unread-count', authMiddleware, async (c) => {

@@ -4,7 +4,7 @@ import { prisma } from '../config/db';
 import bcrypt from 'bcryptjs';
 import { authMiddleware } from '../middlewares/auth.middleware';
 
-const usersRoutes = new Hono();
+const usersRoutes = new Hono<{ Variables: { user: any } }>();
 
 // All user routes require authentication
 usersRoutes.use('*', authMiddleware);
@@ -88,7 +88,7 @@ usersRoutes.put('/profile', async (c) => {
       const body = await c.req.parseBody();
       fullName = body['fullName'];
       phoneNumber = body['phoneNumber'];
-      const avatarFile = body['avatarFile'];
+      const avatarFile = body['avatarFile'] as File | undefined;
       
       if (avatarFile) {
         const ext = path.extname(avatarFile.name) || '.jpg';

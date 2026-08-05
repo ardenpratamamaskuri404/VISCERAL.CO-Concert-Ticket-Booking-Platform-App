@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useStore } from '../context/StoreContext';
 import { Sun, Moon, Ticket, User, LogOut, Shield, Compass, Home, Languages, Info, Settings, Bell } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import logoPng from '../assets/logo.png';
 import { getImageUrl } from '../utils/image';
 
@@ -11,7 +12,8 @@ export default function Navbar() {
   const location = useLocation();
   const [profileOpen, setProfileOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
-  const [currentLang, setCurrentLang] = useState('id');
+  const { t, i18n } = useTranslation();
+  const currentLang = i18n.language;
   const langRef = useRef(null);
   const profileRef = useRef(null);
 
@@ -33,14 +35,8 @@ export default function Navbar() {
   }, []);
 
   const switchLanguage = (langCode) => {
-    setCurrentLang(langCode);
+    i18n.changeLanguage(langCode);
     setLangOpen(false);
-    // Trigger Google Translate
-    const frame = document.querySelector('.goog-te-combo');
-    if (frame) {
-      frame.value = langCode === 'id' ? 'id' : 'en';
-      frame.dispatchEvent(new Event('change'));
-    }
   };
 
   return (
@@ -73,7 +69,7 @@ export default function Navbar() {
             }`}
           >
             <Home className="w-3.5 h-3.5" />
-            Beranda
+            {t('nav.home')}
           </Link>
 
           <Link
@@ -85,7 +81,7 @@ export default function Navbar() {
             }`}
           >
             <Compass className="w-3.5 h-3.5" />
-            Jelajah Konser
+            {t('nav.explore')}
           </Link>
 
           {/* About link — always visible but especially useful for guests */}
@@ -99,7 +95,7 @@ export default function Navbar() {
               }`}
             >
               <Info className="w-3.5 h-3.5" />
-              Tentang
+              {t('nav.about')}
             </Link>
           )}
 
@@ -113,7 +109,7 @@ export default function Navbar() {
               }`}
             >
               <Ticket className="w-3.5 h-3.5" />
-              Tiket Saya
+              {t('nav.myTickets')}
             </Link>
           )}
 
@@ -123,7 +119,7 @@ export default function Navbar() {
               className="px-4 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 bg-oxblood text-white shadow-oxblood-glow hover:bg-oxblood-light transition-all"
             >
               <Shield className="w-3.5 h-3.5" />
-              Dashboard Admin
+              {t('nav.adminDashboard')}
             </Link>
           )}
         </div>
@@ -135,7 +131,7 @@ export default function Navbar() {
             <Link
               to="/admin/notifications"
               className="relative p-2 rounded-full bg-gray-100 dark:bg-obsidian-surface text-gray-700 dark:text-gold hover:scale-110 transition-transform mr-1"
-              title="Notifikasi"
+              title={t('nav.notif')}
             >
               <Bell className="w-4 h-4" />
               {unreadNotificationCount > 0 && (
@@ -151,7 +147,7 @@ export default function Navbar() {
             <button
               onClick={() => setLangOpen(!langOpen)}
               className="p-2 rounded-full bg-gray-100 dark:bg-obsidian-surface text-gray-700 dark:text-gold hover:scale-110 transition-transform"
-              title="Ganti Bahasa"
+              title={t('nav.lang')}
             >
               <Languages className="w-4 h-4" />
             </button>
@@ -190,12 +186,12 @@ export default function Navbar() {
             </button>
             {langOpen && (
               <div className="absolute right-0 mt-12 w-48 bg-white dark:bg-obsidian-card border border-gold/20 dark:border-obsidian-border rounded-2xl shadow-2xl p-2 z-50 text-sm flex flex-col gap-1">
-                <Link to="/landing" className="px-3 py-2 rounded-lg hover:bg-gold/10 text-gray-700 dark:text-gray-200">Beranda</Link>
-                <Link to="/explore" className="px-3 py-2 rounded-lg hover:bg-gold/10 text-gray-700 dark:text-gray-200">Jelajah Konser</Link>
-                {!currentUser && <Link to="/about" className="px-3 py-2 rounded-lg hover:bg-gold/10 text-gray-700 dark:text-gray-200">Tentang</Link>}
-                {currentUser?.role === 'CUSTOMER' && <Link to="/my-tickets" className="px-3 py-2 rounded-lg hover:bg-gold/10 text-gray-700 dark:text-gray-200">Tiket Saya</Link>}
+                <Link to="/landing" className="px-3 py-2 rounded-lg hover:bg-gold/10 text-gray-700 dark:text-gray-200">{t('nav.home')}</Link>
+                <Link to="/explore" className="px-3 py-2 rounded-lg hover:bg-gold/10 text-gray-700 dark:text-gray-200">{t('nav.explore')}</Link>
+                {!currentUser && <Link to="/about" className="px-3 py-2 rounded-lg hover:bg-gold/10 text-gray-700 dark:text-gray-200">{t('nav.about')}</Link>}
+                {currentUser?.role === 'CUSTOMER' && <Link to="/my-tickets" className="px-3 py-2 rounded-lg hover:bg-gold/10 text-gray-700 dark:text-gray-200">{t('nav.myTickets')}</Link>}
                 {(currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPERADMIN') && (
-                  <Link to="/admin/dashboard" className="px-3 py-2 rounded-lg hover:bg-gold/10 text-gray-700 dark:text-gray-200">Dashboard Admin</Link>
+                  <Link to="/admin/dashboard" className="px-3 py-2 rounded-lg hover:bg-gold/10 text-gray-700 dark:text-gray-200">{t('nav.adminDashboard')}</Link>
                 )}
               </div>
             )}
@@ -224,7 +220,7 @@ export default function Navbar() {
                 )}
               </div>
               <span className="hidden sm:inline max-w-[100px] truncate">
-                {currentUser ? currentUser.fullName : 'Tamu'}
+                {currentUser ? currentUser.fullName : t('nav.guest')}
               </span>
               <span className="bg-oxblood text-[9px] px-1.5 py-0.5 rounded-full font-semibold uppercase text-white">
                 {currentUser ? currentUser.role : 'GUEST'}
@@ -253,7 +249,7 @@ export default function Navbar() {
                           className="w-full text-left px-3 py-1.5 rounded-lg hover:bg-gold/10 flex items-center gap-2 text-gray-700 dark:text-gray-200"
                         >
                           <Ticket className="w-3.5 h-3.5 text-gold" />
-                          Tiket Saya
+                          {t('nav.myTickets')}
                         </Link>
                       </div>
                     )}
@@ -264,7 +260,7 @@ export default function Navbar() {
                         className="w-full text-left px-3 py-1.5 rounded-lg hover:bg-gold/10 flex items-center gap-2 text-gray-700 dark:text-gray-200"
                       >
                         <Settings className="w-3.5 h-3.5 text-gold" />
-                        Pengaturan Akun
+                        {t('nav.accountSettings')}
                       </Link>
                     </div>
                     <div className="pt-1 border-t border-gray-100 dark:border-obsidian-border">
@@ -273,7 +269,7 @@ export default function Navbar() {
                         className="w-full text-left px-3 py-1.5 rounded-lg hover:bg-oxblood/10 text-oxblood dark:text-red-400 flex items-center gap-2 font-semibold"
                       >
                         <LogOut className="w-3.5 h-3.5" />
-                        Logout
+                        {t('nav.logout')}
                       </button>
                     </div>
                   </>
@@ -284,14 +280,14 @@ export default function Navbar() {
                       onClick={() => setProfileOpen(false)}
                       className="block w-full text-center py-1.5 rounded-lg bg-gold text-obsidian font-bold"
                     >
-                      Login
+                      {t('nav.login')}
                     </Link>
                     <Link
                       to="/register"
                       onClick={() => setProfileOpen(false)}
                       className="block w-full text-center py-1.5 rounded-lg bg-obsidian text-white border border-gold/30 font-bold"
                     >
-                      Daftar Akun
+                      {t('nav.register')}
                     </Link>
                   </div>
                 )}

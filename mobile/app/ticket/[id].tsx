@@ -5,6 +5,7 @@ import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import QRCode from 'react-native-qrcode-svg';
 import { Colors } from '../../src/constants/theme';
 import api from '../../src/api/axios';
+import { connectSocket } from '../../src/api/socket';
 import { Ionicons } from '@expo/vector-icons';
 import dayjs from 'dayjs';
 
@@ -18,6 +19,29 @@ export default function TicketDetailScreen() {
 
   useEffect(() => {
     fetchTicket();
+  }, [id]);
+
+  useEffect(() => {
+    const socket = connectSocket();
+
+    const handleTicketScanned = (scannedTicket: any) => {
+      if (scannedTicket.id === id) {
+        setTicket((prev: any) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            status: 'CHECKED_IN',
+            checkedInAt: scannedTicket.checkedInAt
+          };
+        });
+      }
+    };
+
+    socket.on('ticket_scanned', handleTicketScanned);
+
+    return () => {
+      socket.off('ticket_scanned', handleTicketScanned);
+    };
   }, [id]);
 
   const fetchTicket = async () => {
@@ -108,10 +132,10 @@ export default function TicketDetailScreen() {
       <ScrollView contentContainerStyle={{ padding: 24, alignItems: 'center', paddingBottom: 100 }}>
         
         {/* The Ticket Card */}
-        <View style={{ width: '100%', backgroundColor: Colors.darkCard, borderRadius: 24, overflow: 'hidden', borderWidth: 1, borderColor: Colors.darkBorder }}>
+        <View style={{ width: '100%', borderRadius: 24, overflow: 'hidden', borderWidth: 1, borderColor: Colors.darkBorder, backgroundColor: Colors.darkCard }}>
           
           {/* Top Section - Event Details */}
-          <View style={{ padding: 24, backgroundColor: Colors.darkSurface, borderBottomWidth: 2, borderBottomColor: Colors.obsidian, borderStyle: 'dashed' }}>
+          <View style={{ padding: 24, backgroundColor: Colors.darkSurface }}>
             <Text style={{ color: Colors.gold, fontSize: 12, fontWeight: '900', letterSpacing: 2, marginBottom: 8 }}>VISCERAL.CO</Text>
             <Text style={{ color: Colors.white, fontSize: 24, fontWeight: '900', marginBottom: 16 }}>{order.eventTitle}</Text>
             
@@ -136,10 +160,11 @@ export default function TicketDetailScreen() {
             </View>
           </View>
 
-          {/* Cutouts for ticket effect */}
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', position: 'absolute', top: 165, left: -10, right: -10, zIndex: 10 }}>
-            <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: Colors.obsidian }} />
-            <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: Colors.obsidian }} />
+          {/* Divider with Cutouts (Responsive) */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.darkSurface }}>
+            <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: Colors.obsidian, marginLeft: -12 }} />
+            <View style={{ flex: 1, height: 1, borderWidth: 1, borderColor: Colors.obsidian, borderStyle: 'dashed', marginHorizontal: 4 }} />
+            <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: Colors.obsidian, marginRight: -12 }} />
           </View>
 
           {/* Bottom Section - QR & User Info */}
@@ -171,7 +196,7 @@ export default function TicketDetailScreen() {
               <View>
                 <Text style={{ color: Colors.textMuted, fontSize: 12 }}>Status</Text>
                 <Text style={{ color: ticket.status === 'ACTIVE' ? Colors.success : Colors.oxblood, fontSize: 14, fontWeight: '900' }}>
-                  {ticket.status}
+                  {ticket.status === 'CHECKED_IN' ? 'TERPAKAI' : ticket.status}
                 </Text>
               </View>
               <View style={{ alignItems: 'flex-end' }}>

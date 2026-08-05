@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, RefreshControl, TouchableOpacity, FlatList, Image, TextInput } from 'react-native';
+import { View, Text, ScrollView, RefreshControl, TouchableOpacity, FlatList, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors } from '../../src/constants/theme';
 import { useApp } from '../../src/context/AppContext';
 import { useAuth } from '../../src/context/AuthContext';
 import EventCard from '../../src/components/EventCard';
+import VisceralLogo from '../../src/components/VisceralLogo';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function HomeScreen() {
@@ -32,10 +33,7 @@ export default function HomeScreen() {
       {/* Header */}
       <View style={{ paddingHorizontal: 24, paddingTop: 60, paddingBottom: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <Image 
-            source={require('../../assets/icon.png')} 
-            style={{ width: 40, height: 40, borderRadius: 12 }} 
-          />
+          <VisceralLogo size={48} />
           <View>
             <Text style={{ color: Colors.textMuted, fontSize: 12 }}>Selamat datang,</Text>
             <Text style={{ color: Colors.gold, fontSize: 16, fontWeight: '800' }}>{currentUser?.fullName?.split(' ')[0]}</Text>

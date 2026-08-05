@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform
 import { useRouter } from 'expo-router';
 import { Colors } from '../../src/constants/theme';
 import GoldButton from '../../src/components/GoldButton';
+import VisceralLogo from '../../src/components/VisceralLogo';
 import api from '../../src/api/axios';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -91,7 +92,11 @@ export default function OTPScreen() {
           <Ionicons name="arrow-back" size={24} color={Colors.white} />
         </TouchableOpacity>
 
-        <View style={{ marginBottom: 40, marginTop: 40 }}>
+        <View style={{ alignItems: 'center', marginBottom: 24 }}>
+          <VisceralLogo size={100} />
+        </View>
+
+        <View style={{ marginBottom: 40 }}>
           <Text style={{ color: Colors.gold, fontSize: 32, fontWeight: '900', marginBottom: 8 }}>
             {otpSent ? 'Verifikasi OTP' : 'Lupa Password?'}
           </Text>

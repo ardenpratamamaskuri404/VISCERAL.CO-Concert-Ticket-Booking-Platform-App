@@ -1,94 +1,89 @@
 # Alur Aplikasi — VISCERAL.CO (Sistem Konser Terintegrasi)
 
-Dokumen ini berisi panduan alur pemakaian **aplikasi VISCERAL.CO**. Semua alur sudah diperbarui untuk mencerminkan sistem terbaru yang sangat canggih, termasuk integrasi Payment Gateway Otomatis (DOKU), Pemilihan Kursi Real-Time, dan Notifikasi WebSockets.
+Dokumen ini berisi panduan alur pemakaian **aplikasi VISCERAL.CO**. Semua alur sudah diperbarui untuk mencerminkan sistem terbaru yang sudah dikembangkan, termasuk integrasi Payment Gateway Otomatis (DOKU), Pemilihan Kursi Real-Time, Notifikasi WebSockets, dan pemisahan tegas platform Web (Admin) dan Mobile (Customer).
 
 Gunakan dokumen ini untuk menjelaskan alur sistem kepada Dosen/Penguji.
 
 ---
 
-## 1. Alur Customer (Pengguna Aplikasi)
+## 1. Alur Customer (Aplikasi Mobile & Web Frontend)
 
-Customer adalah pengguna yang ingin membeli tiket konser. Berikut adalah urutan perjalanan (User Journey) mereka:
+Customer adalah pengguna yang ingin membeli tiket konser. Aplikasi **Mobile** secara murni DEDIKASIKAN HANYA untuk Customer (tidak ada lagi fitur login Staff/Admin di Mobile).
 
-1. **Register / Login**
+1. **Register / Login (Mobile/Web)**
    - Customer membuat akun baru atau login menggunakan email dan password.
+   - *Splash Screen & Onboarding* di Mobile menggunakan identitas visual resmi (Logo SVG VISCERAL.CO) dengan tema Obsidian & Gold.
 2. **Jelajah Event (Katalog Konser)**
    - Customer masuk ke halaman Explore untuk melihat daftar konser dan festival musik.
-   - Customer bisa melakukan filter (Buka/Tutup) atau mencari nama artis/konser.
+   - Di web, halaman ini dilengkapi dengan animasi *Framer Motion* yang dinamis dan modern (efek scroll-reveal).
+   - Customer bisa melakukan pencarian konser.
 3. **Pilih Event & Kategori Tiket**
-   - Di halaman detail, customer melihat deskripsi event dan daftar artis yang tampil.
+   - Customer melihat deskripsi event dan daftar artis yang tampil.
    - **Logika Tipe Venue:**
      - Jika event adalah **Standing/Festival (is_seated = false)**: Customer langsung memilih jumlah tiket.
      - Jika event adalah **Seated/Stadion (is_seated = true)**: Customer bisa memilih tiket berdasarkan kategori tribun/kursi (Seat Management).
-4. **Checkout & Pembayaran Otomatis (DOKU Payment Gateway)**
-   - Sistem akan mengunci kuota (Seat) secara sementara (*Booking*). Status order = PENDING.
-   - Customer diarahkan langsung ke halaman pembayaran **DOKU** (Bisa memilih Virtual Account, Kartu Kredit, atau QRIS).
-   - *Keunggulan Sistem Baru:* Customer **TIDAK PERLU** lagi repot-repot melakukan upload bukti transfer manual.
-5. **Konfirmasi Otomatis & Real-Time (WebHooks + Socket.io)**
-   - Setelah customer membayar via DOKU, server DOKU akan menembak *Webhook* ke backend kita secara otomatis.
-   - Backend memverifikasi *Signature HMAC* DOKU demi keamanan.
-   - Jika valid, status order otomatis berubah menjadi PAID.
-   - Sistem **Socket.io** langsung menembakkan notifikasi real-time ke layar customer saat itu juga bahwa pembayaran sukses, tanpa perlu me-refresh halaman!
+4. **Checkout & Pembayaran (DOKU Virtual Account)**
+   - Sistem akan mengunci kuota (Seat) secara sementara. Status order = PENDING.
+   - Customer memilih metode pembayaran Virtual Account (BCA/BNI/Mandiri) yang disimulasikan melalui DOKU.
+   - Customer mendapatkan instruksi pembayaran lengkap (Nomor VA, batas waktu, cara bayar).
+5. **Konfirmasi Otomatis & Real-Time (Socket.io)**
+   - Setelah customer melakukan simulasi pembayaran, backend memverifikasi pembayaran.
+   - Status order otomatis berubah menjadi PAID.
+   - Sistem **Socket.io** langsung menembakkan notifikasi real-time ke layar customer bahwa pembayaran sukses. Customer diarahkan ke halaman sukses beranimasi *Lottie Confetti*.
 6. **E-Tiket & QR Code Terbit**
-   - Customer mendapatkan E-Tiket resmi dengan QR Code unik yang siap di-scan saat hari H konser.
+   - Customer mendapatkan E-Tiket resmi dengan QR Code unik yang siap di-scan saat hari H konser (Tersedia di tab "My Tickets" pada aplikasi Mobile).
 
 ---
 
-## 2. Alur Admin & Superadmin (Manajemen)
+## 2. Alur Admin & Superadmin (Eksklusif Web Dashboard)
 
-Sistem menggunakan kontrol peran (Role-Based Access Control). Admin tidak perlu pusing memverifikasi pembayaran manual lagi karena semuanya sudah di-handle oleh DOKU.
+Manajemen sistem difokuskan 100% pada **Web Dashboard** untuk Admin/Superadmin.
 
-1. **Kelola Event (CRUD)**
-   - Admin bisa membuat konser baru.
-   - Menentukan apakah konser tersebut berjenis **Seated** (kursi VIP/Tribun) atau **Standing/Gigs** (Festival lapangan terbuka).
-   - Menentukan kategori harga tiket dan batas kuota otomatis.
-2. **Dashboard & Laporan Penjualan**
+1. **Dashboard Penjualan & Okupansi**
    - Admin melihat statistik penjualan tiket secara real-time.
-   - Setiap ada transaksi yang lunas dari DOKU, notifikasi real-time muncul di Dashboard Admin tanpa perlu *refresh*.
+   - Tabel pesanan langsung ter-update (Socket.io) ketika ada transaksi DOKU yang lunas.
+2. **Kelola Event & Tiket (CRUD)**
+   - Admin membuat konser baru, menentukan banner, dan jenis venue (Seated vs Standing).
+   - Menentukan kategori harga tiket dan mengalokasikan kuota/kursi secara massal.
 3. **Kelola Artis**
    - Admin menambahkan daftar artis baru beserta biografinya, lalu menghubungkannya ke konser terkait (*Relasi Many-to-Many*).
-4. **Tutup Penjualan Tiket (Sales Closed)**
-   - Hanya dengan 1 klik (Toggle), Admin bisa menutup penjualan tiket jika tiket ludes (Sold Out) atau mendekati hari H, mencegah customer baru melakukan checkout.
+4. **Gate Scanner (Check-in Tiket)**
+   - Admin/Staff menggunakan fitur *Scanner Gate Admin* di Web Dashboard.
+   - Staff mengetik/melakukan scan *Ticket Code* dari customer.
+   - Sistem akan memvalidasi keabsahan tiket (menolak tiket kadaluarsa atau tiket yang sudah di-scan sebelumnya) dan menandai status tiket menjadi `CHECKED_IN`.
+5. **Tutup Penjualan Tiket (Sales Closed)**
+   - Admin dapat menutup penjualan tiket secara manual untuk event yang sudah mendekati hari H atau tiket ludes (Sold Out).
 
 ---
 
 ## 3. Alur Sistem Data (State Machine)
 
-Bagian ini menjelaskan apa yang terjadi di balik layar pada database kita.
+Bagian ini menjelaskan siklus hidup data di balik layar pada database kita.
 
 ### 3.1 Status Pesanan (Order Lifecycle)
-Sistem kita murni otomatis, tidak ada lagi tombol 'Approve Admin' untuk pembayaran.
 
 BUAT PESANAN ──> PENDING
-PENDING ──(Webhook DOKU sukses & divalidasi)──> PAID (Tiket Otomatis Terbit)
-PENDING ──(Batas Waktu Bayar DOKU Habis)──> EXPIRED
-
+PENDING ──(Simulasi Bayar DOKU sukses)──> PAID (Tiket Otomatis Terbit)
+PENDING ──(Batas Waktu Bayar Habis)──> EXPIRED
 
 ### 3.2 Status Kuota / Kursi (Seat Management)
-Bagaimana kita mencegah *Double Booking* (2 orang beli tiket terakhir secara bersamaan)?
 
-AVAILABLE ──(Customer A klik Checkout)──> LOCKED (Kunci sementara)
-LOCKED ──(Order Customer A = PAID)──> SOLD (Terjual permanen)
-LOCKED ──(Order Customer A = EXPIRED/CANCEL)──> AVAILABLE (Dikembalikan ke pasar)
+Mencegah *Double Booking* secara *Real-Time*:
 
+AVAILABLE ──(Customer klik Checkout)──> LOCKED (Kunci sementara)
+LOCKED ──(Order = PAID)──> SOLD (Terjual permanen)
+LOCKED ──(Order = EXPIRED/CANCEL)──> AVAILABLE (Dikembalikan ke pasar)
 
 ### 3.3 Status E-Tiket (Ticket Lifecycle)
 
 DIBUAT (Otomatis dari status PAID) ──> ACTIVE
-ACTIVE ──(Admin Scan QR di Pintu Masuk Konser)──> CHECKED_IN
+ACTIVE ──(Admin Scan via Web Gate Scanner)──> CHECKED_IN
 
 
----
+## Status Perbaikan & Pengembangan Terkini (Agustus 2026)
 
-## 4. Nilai Jual & Fitur Inovasi (Untuk Dijelaskan ke Dosen)
-
-Jika Dosen/Penguji bertanya *'Apa keunggulan aplikasi ini dibanding aplikasi CRUD biasa?'*, ini poin yang harus dijelaskan:
-
-1. **Fully Automated Payment (DOKU Gateway)**
-   - Tidak ada lagi flow kuno 'Upload Bukti Bayar'. Pembayaran divalidasi oleh sistem perbankan nyata secara instan.
-2. **Real-time WebSockets (Socket.io)**
-   - Menggunakan teknologi *Event-Driven*! Admin dan Customer tidak perlu pencet tombol F5/Refresh. Jika ada tiket terjual, notifikasi muncul di pojok layar secara ajaib.
-3. **Smart Ticketing System (Seated vs Standing)**
-   - Arsitektur database kita cerdas. Sistem bisa membedakan konser Gigs terbuka (tanpa kursi) dan konser Stadion (dengan pembagian kategori kursi), serta otomatis melakukan pra-generasi *Seat* (kursi) di belakang layar saat event dibuat.
-4. **Secure Data Integrity (Database Transactions)**
-   - Menggunakan fitur *Transaction* pada Prisma ORM, sehingga proses pemotongan kuota dan pembuatan pesanan dijamin aman, anti-bocor, dan anti-double-booking.
+1. **Dokumentasi Canva**: Telah ditambahkan folder docs/canva/ berisi proposal-presentasi.md yang merangkum keseluruhan proyek (Latar Belakang, Tujuan, Fitur, Workflow UML/DFD, UI/UX) untuk pembuatan PPT/Proposal Canva.
+2. **Penyempurnaan Fitur Scanner (Web & Mobile)**: Scanner kini menampilkan data riwayat secara komprehensif, mencakup Nama Penonton, Kategori, Nomor Kursi, Tanggal Acara, serta Jam Open Gate secara realtime.
+3. **Modernisasi UI/UX Mobile**: Pembaruan sistem navigasi menggunakan gaya *Floating Pill Tab Bar* eksklusif yang menyesuaikan *theme* Visceral (Gold & Obsidian).
+4. **Real-time Chat & WebSockets**: Kesalahan rute API HTTP POST pada fitur chat mobile telah dialihkan sepenuhnya menggunakan protokol Socket.IO untuk menjamin obrolan instan dua arah.
+5. **Pembersihan Bug & Code Quality**: Berhasil menyelesaikan ratusan issue/error TypeScript (terutama pada *middleware* otentikasi Hono c.get('user') dan validasi tipe) di direktori web/backend/src/routes/ hingga tercapai *0 errors*.

@@ -1,0 +1,16 @@
+{
+  "nav": {
+    "home": "Home",
+    "explore": "Explore Concerts",
+    "about": "About",
+    "myTickets": "My Tickets",
+    "adminDashboard": "Admin Dashboard",
+    "login": "Login",
+    "register": "Register",
+    "logout": "Logout",
+    "accountSettings": "Account Settings",
+    "guest": "Guest",
+    "notif": "Notifications",
+    "lang": "Switch Language"
+  }
+}

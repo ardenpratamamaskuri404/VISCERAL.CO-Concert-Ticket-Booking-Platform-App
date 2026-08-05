@@ -1,11 +1,10 @@
 import { io, Socket } from 'socket.io-client';
 import { Platform } from 'react-native';
 
+const SOCKET_URL = 'https://wisdom-detection-uncharted.ngrok-free.dev';
+
 const getSocketUrl = () => {
-  if (Platform.OS === 'android') {
-    return 'http://10.0.2.2:3005';
-  }
-  return 'http://localhost:3005';
+  return SOCKET_URL;
 };
 
 let socket: Socket | null = null;

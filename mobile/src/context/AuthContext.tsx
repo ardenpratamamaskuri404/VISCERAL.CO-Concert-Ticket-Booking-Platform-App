@@ -9,7 +9,7 @@ interface AuthContextType {
   token: string | null;
   isLoading: boolean;
   isLoggedIn: boolean;
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  login: (email: string, password: string) => Promise<{ success: boolean; user?: User; error?: string }>;
   register: (data: RegisterData) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   updateUser: (user: User) => Promise<void>;
@@ -61,7 +61,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setToken(newToken);
       setCurrentUser(user);
 
-      return { success: true };
+      return { success: true, user };
     } catch (e: any) {
       const msg = e.response?.data?.error || 'Login gagal. Coba lagi.';
       return { success: false, error: msg };

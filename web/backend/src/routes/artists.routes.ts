@@ -4,7 +4,7 @@ import { Hono } from 'hono';
 import { prisma } from '../config/db';
 import { authMiddleware } from '../middlewares/auth.middleware';
 
-const artistsRoutes = new Hono();
+const artistsRoutes = new Hono<{ Variables: { user: any } }>();
 
 // GET all artists
 artistsRoutes.get('/', async (c) => {

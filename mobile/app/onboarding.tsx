@@ -1,28 +1,28 @@
-import React, { useRef, useState } from 'react';
-import { View, Text, Dimensions, FlatList, Image, TouchableOpacity } from 'react-native';
+import React, { useRef, useState, useEffect } from 'react';
+import { View, Text, Dimensions, FlatList, TouchableOpacity, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Colors, GoldGradient } from '../src/constants/theme';
+import { Colors } from '../src/constants/theme';
 import GoldButton from '../src/components/GoldButton';
+import VisceralLogo from '../src/components/VisceralLogo';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 const slides = [
   {
     title: 'Temukan Konser Impianmu',
     description: 'Jelajahi ribuan event konser dari artis favoritmu dan dapatkan tiket terbaik.',
-    emoji: '🎵',
+    image: require('../assets/images/onboarding1.png'),
   },
   {
     title: 'Pesan Tiket dengan Mudah',
     description: 'Pilih kursi, bayar dengan berbagai metode pembayaran, dan dapatkan e-tiket instan.',
-    emoji: '🎫',
+    image: require('../assets/images/onboarding2.png'),
   },
   {
     title: 'Nikmati Pengalaman Live',
     description: 'Scan QR tiketmu di pintu masuk dan rasakan alunan musik langsung dari panggung.',
-    emoji: '🎤',
+    image: require('../assets/images/onboarding3.png'),
   },
 ];
 
@@ -30,6 +30,22 @@ export default function OnboardingScreen() {
   const router = useRouter();
   const flatListRef = useRef<FlatList>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+
+  // Auto-scroll animation
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (currentIndex < slides.length - 1) {
+        flatListRef.current?.scrollToIndex({ index: currentIndex + 1, animated: true });
+        // The onMomentumScrollEnd will update the state when user swipes, 
+        // but for programmatic scroll we should update it here to keep the interval in sync.
+        setCurrentIndex(currentIndex + 1);
+      } else {
+        clearInterval(timer); // Stop at the last slide
+      }
+    }, 3500); // Ganti slide otomatis setiap 3.5 detik
+
+    return () => clearInterval(timer);
+  }, [currentIndex]);
 
   const handleSkip = async () => {
     await AsyncStorage.setItem('visceral_onboarded', 'true');
@@ -47,13 +63,19 @@ export default function OnboardingScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: Colors.obsidian }}>
-      {/* Skip button */}
-      <TouchableOpacity
-        onPress={handleSkip}
-        style={{ position: 'absolute', top: 60, right: 24, zIndex: 10 }}
-      >
-        <Text style={{ color: Colors.textMuted, fontSize: 14, fontWeight: '600' }}>Lewati</Text>
-      </TouchableOpacity>
+      {/* Top Bar: Logo + Skip */}
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingTop: 60 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <VisceralLogo size={48} />
+          <View>
+            <Text style={{ color: Colors.gold, fontSize: 14, fontWeight: '900', letterSpacing: 2 }}>VISCERAL</Text>
+            <Text style={{ color: Colors.oxblood, fontSize: 8, fontWeight: '700', letterSpacing: 3 }}>LIVE CONCERTS</Text>
+          </View>
+        </View>
+        <TouchableOpacity onPress={handleSkip}>
+          <Text style={{ color: Colors.textMuted, fontSize: 14, fontWeight: '600' }}>Lewati</Text>
+        </TouchableOpacity>
+      </View>
 
       <FlatList
         ref={flatListRef}
@@ -79,18 +101,25 @@ export default function OnboardingScreen() {
             {/* Illustration */}
             <View
               style={{
-                width: 160,
-                height: 160,
-                borderRadius: 80,
+                width: width * 0.8,
+                height: width * 0.8,
+                borderRadius: 24,
                 backgroundColor: Colors.darkSurface,
                 borderWidth: 2,
-                borderColor: Colors.darkBorder,
-                alignItems: 'center',
-                justifyContent: 'center',
+                borderColor: Colors.goldDark,
+                overflow: 'hidden',
                 marginBottom: 48,
+                shadowColor: Colors.gold,
+                shadowOffset: { width: 0, height: 10 },
+                shadowOpacity: 0.3,
+                shadowRadius: 20,
+                elevation: 10,
               }}
             >
-              <Text style={{ fontSize: 72 }}>{item.emoji}</Text>
+              <Image 
+                source={item.image} 
+                style={{ width: '100%', height: '100%', resizeMode: 'cover' }}
+              />
             </View>
 
             <Text

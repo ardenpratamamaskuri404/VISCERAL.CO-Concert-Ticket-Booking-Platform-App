@@ -20,9 +20,16 @@ export default function EventDetailScreen() {
   
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState<TicketCategory | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<any>(null);
   const [ticketCount, setTicketCount] = useState(1);
+  const [stageMapVisible, setStageMapVisible] = useState(false);
   const [mapModalVisible, setMapModalVisible] = useState(false);
+
+  const isStandingCat = (catName: string) => {
+    if (!catName) return false;
+    const n = catName.toLowerCase();
+    return n.includes('standing') || n.includes('festival') || n.includes('general') || n.includes('presale') || n.includes('pass') || n.includes('ga');
+  };
 
   useEffect(() => {
     fetchEventDetails();
@@ -44,21 +51,33 @@ export default function EventDetailScreen() {
   const getImageUrl = (url?: string) => {
     if (!url) return null;
     if (url.startsWith('http')) return url;
-    return `http://10.0.2.2:3005/assets/events/${url}`;
+    return `https://wisdom-detection-uncharted.ngrok-free.dev/assets/events/${url}`;
   };
 
   const handleCheckout = () => {
     if (!selectedCategory || !event) return;
     
-    // For seating events, this would normally go to a seat selection screen
-    // For simplicity in this demo, we'll assume festival/auto-assign if seated
-    router.push({
-      pathname: `/checkout/${event.id}`,
-      params: { 
-        categoryId: selectedCategory.id,
-        quantity: ticketCount
-      }
-    });
+    if (event.isSeated && !selectedCategory.name.toUpperCase().includes('FESTIVAL')) {
+      // Go to seat selection
+      router.push({
+        pathname: `/seat-selection/${selectedCategory.id}`,
+        params: {
+          eventId: event.id,
+          eventTitle: event.title,
+          venueName: event.venueName,
+          eventDate: event.eventDate
+        }
+      });
+    } else {
+      // Direct checkout for festival/standing
+      router.push({
+        pathname: `/checkout/${event.id}`,
+        params: { 
+          categoryId: selectedCategory.id,
+          quantity: ticketCount
+        }
+      });
+    }
   };
 
   if (loading) {
@@ -146,10 +165,16 @@ export default function EventDetailScreen() {
                 {event.artists.map((ea, index) => (
                   <View key={index} style={{ alignItems: 'center', width: 90 }}>
                     <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: Colors.darkSurface, marginBottom: 8, borderWidth: ea.isHeadliner ? 2 : 0, borderColor: Colors.gold }}>
-                      {/* Artist Photo Placeholder */}
-                      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-                        <Ionicons name="person" size={32} color={Colors.textMuted} />
-                      </View>
+                      {ea.artist.photoUrl ? (
+                        <Image 
+                          source={{ uri: `https://wisdom-detection-uncharted.ngrok-free.dev/assets/artists/${ea.artist.photoUrl}` }}
+                          style={{ width: '100%', height: '100%', borderRadius: 40 }}
+                        />
+                      ) : (
+                        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                          <Ionicons name="person" size={32} color={Colors.textMuted} />
+                        </View>
+                      )}
                     </View>
                     <Text numberOfLines={1} style={{ color: Colors.white, fontSize: 12, fontWeight: '700', textAlign: 'center' }}>{ea.artist.name}</Text>
                     {ea.isHeadliner && (
@@ -207,39 +232,52 @@ export default function EventDetailScreen() {
             </View>
           </View>
 
-          {/* Ticket Categories */}
-          <View>
-            <Text style={{ color: Colors.white, fontSize: 18, fontWeight: '800', marginBottom: 16 }}>Pilih Kategori Tiket</Text>
+          {/* Stage Map & Categories */}
+          <View style={{ backgroundColor: Colors.darkCard, borderRadius: 24, padding: 24, borderWidth: 1, borderColor: Colors.darkBorder, marginBottom: 24 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <Text style={{ color: Colors.white, fontSize: 18, fontWeight: '800' }}>Kategori Tiket</Text>
+              <TouchableOpacity 
+                onPress={() => setStageMapVisible(true)}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(200, 155, 60, 0.1)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 }}
+              >
+                <Ionicons name="map-outline" size={16} color={Colors.gold} />
+                <Text style={{ color: Colors.gold, fontSize: 12, fontWeight: '800' }}>Lihat Denah</Text>
+              </TouchableOpacity>
+            </View>
+
             {event.categories?.map((cat) => (
               <TouchableOpacity
                 key={cat.id}
                 onPress={() => !cat.isSalesClosed && cat.availableSeats > 0 && setSelectedCategory(cat)}
                 activeOpacity={0.8}
                 style={{
-                  backgroundColor: selectedCategory?.id === cat.id ? 'rgba(200, 155, 60, 0.1)' : Colors.darkCard,
+                  backgroundColor: selectedCategory?.id === cat.id ? 'rgba(200, 155, 60, 0.1)' : Colors.darkSurface,
                   borderWidth: 2,
-                  borderColor: selectedCategory?.id === cat.id ? Colors.gold : Colors.darkBorder,
+                  borderColor: selectedCategory?.id === cat.id ? Colors.gold : Colors.darkSurface,
                   borderRadius: 16,
                   padding: 16,
                   marginBottom: 12,
-                  opacity: (cat.isSalesClosed || cat.availableSeats === 0) ? 0.5 : 1
+                  opacity: (cat.isSalesClosed || cat.availableSeats === 0) ? 0.6 : 1
                 }}
               >
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                  <Text style={{ color: Colors.white, fontSize: 16, fontWeight: '800' }}>{cat.name}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: selectedCategory?.id === cat.id ? Colors.gold : Colors.textMuted }} />
+                    <Text style={{ color: Colors.white, fontSize: 16, fontWeight: '800' }}>{cat.name}</Text>
+                  </View>
                   <Text style={{ color: Colors.gold, fontSize: 16, fontWeight: '900' }}>Rp {Number(cat.price).toLocaleString('id-ID')}</Text>
                 </View>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingLeft: 20 }}>
                   <Text style={{ color: Colors.textMuted, fontSize: 12 }}>
-                    {event.isSeated ? 'Seated (Kursi)' : 'Standing (Festival)'}
+                    {isStandingCat(cat.name) || !event.isSeated ? 'Standing (Area Festival)' : 'Seated (Kursi Bernomor)'}
                   </Text>
                   
                   {cat.isSalesClosed ? (
-                    <Text style={{ color: Colors.oxblood, fontSize: 12, fontWeight: '800' }}>CLOSED</Text>
+                    <Text style={{ color: Colors.oxblood, fontSize: 12, fontWeight: '800' }}>DITUTUP</Text>
                   ) : cat.availableSeats === 0 ? (
-                    <Text style={{ color: Colors.oxblood, fontSize: 12, fontWeight: '800' }}>SOLD OUT</Text>
+                    <Text style={{ color: Colors.oxblood, fontSize: 12, fontWeight: '800' }}>HABIS</Text>
                   ) : (
-                    <Text style={{ color: Colors.goldLight, fontSize: 12, fontWeight: '600' }}>Sisa {cat.availableSeats} tiket</Text>
+                    <Text style={{ color: Colors.success, fontSize: 12, fontWeight: '700' }}>Tersedia {cat.availableSeats}</Text>
                   )}
                 </View>
               </TouchableOpacity>
@@ -249,6 +287,40 @@ export default function EventDetailScreen() {
         </View>
       </ScrollView>
 
+      {/* Stage Map Modal */}
+      <Modal visible={stageMapVisible} transparent={true} animationType="fade" onRequestClose={() => setStageMapVisible(false)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+          <View style={{ width: '100%', backgroundColor: Colors.darkCard, borderRadius: 24, overflow: 'hidden', borderWidth: 1, borderColor: Colors.gold }}>
+            <View style={{ padding: 20, borderBottomWidth: 1, borderBottomColor: Colors.darkBorder, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={{ color: Colors.white, fontSize: 18, fontWeight: '800' }}>Denah Panggung</Text>
+              <TouchableOpacity onPress={() => setStageMapVisible(false)}>
+                <Ionicons name="close-circle" size={28} color={Colors.textMuted} />
+              </TouchableOpacity>
+            </View>
+            <View style={{ padding: 24, alignItems: 'center', backgroundColor: Colors.obsidian }}>
+              {/* Dummy Stage Graphic */}
+              <View style={{ width: 200, height: 60, backgroundColor: Colors.darkSurface, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 32, borderWidth: 2, borderColor: Colors.darkBorder }}>
+                <Text style={{ color: Colors.white, fontWeight: '900', letterSpacing: 4 }}>PANGGUNG</Text>
+              </View>
+              <View style={{ flexDirection: 'row', gap: 16, marginBottom: 16 }}>
+                <View style={{ width: 100, height: 80, backgroundColor: 'rgba(200, 155, 60, 0.2)', borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Colors.gold }}>
+                  <Text style={{ color: Colors.gold, fontWeight: 'bold' }}>VIP A</Text>
+                </View>
+                <View style={{ width: 100, height: 80, backgroundColor: 'rgba(200, 155, 60, 0.2)', borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Colors.gold }}>
+                  <Text style={{ color: Colors.gold, fontWeight: 'bold' }}>VIP B</Text>
+                </View>
+              </View>
+              <View style={{ width: 216, height: 100, backgroundColor: 'rgba(255, 255, 255, 0.1)', borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Colors.textMuted }}>
+                <Text style={{ color: Colors.white, fontWeight: 'bold' }}>FESTIVAL (STANDING)</Text>
+              </View>
+            </View>
+            <TouchableOpacity onPress={() => setStageMapVisible(false)} style={{ backgroundColor: Colors.gold, padding: 16, alignItems: 'center' }}>
+              <Text style={{ color: Colors.obsidian, fontWeight: '900', fontSize: 16 }}>Tutup Denah</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       {/* Sticky Bottom Bar */}
       <View style={{ 
         position: 'absolute', bottom: 0, left: 0, right: 0, 
@@ -257,27 +329,29 @@ export default function EventDetailScreen() {
         padding: 24, paddingBottom: Platform.OS === 'ios' ? 32 : 24,
         flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'
       }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.obsidian, borderRadius: 12, borderWidth: 1, borderColor: Colors.darkBorder }}>
-          <TouchableOpacity 
-            onPress={() => setTicketCount(Math.max(1, ticketCount - 1))}
-            style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}
-          >
-            <Ionicons name="remove" size={20} color={Colors.white} />
-          </TouchableOpacity>
-          <Text style={{ color: Colors.white, fontSize: 16, fontWeight: '800', width: 30, textAlign: 'center' }}>{ticketCount}</Text>
-          <TouchableOpacity 
-            onPress={() => setTicketCount(Math.min(5, ticketCount + 1))}
-            style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}
-          >
-            <Ionicons name="add" size={20} color={Colors.white} />
-          </TouchableOpacity>
-        </View>
+        {(!event.isSeated || (selectedCategory && isStandingCat(selectedCategory.name))) && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.obsidian, borderRadius: 12, borderWidth: 1, borderColor: Colors.darkBorder }}>
+            <TouchableOpacity 
+              onPress={() => setTicketCount(Math.max(1, ticketCount - 1))}
+              style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Ionicons name="remove" size={20} color={Colors.white} />
+            </TouchableOpacity>
+            <Text style={{ color: Colors.white, fontSize: 16, fontWeight: '800', width: 30, textAlign: 'center' }}>{ticketCount}</Text>
+            <TouchableOpacity 
+              onPress={() => setTicketCount(Math.min(5, ticketCount + 1))}
+              style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Ionicons name="add" size={20} color={Colors.white} />
+            </TouchableOpacity>
+          </View>
+        )}
 
         <GoldButton 
-          title="Pesan Sekarang" 
+          title={event.isSeated && selectedCategory && !isStandingCat(selectedCategory.name) ? "Pilih Kursi" : "Pesan Sekarang"} 
           onPress={handleCheckout} 
           disabled={!selectedCategory || isSalesClosed}
-          style={{ flex: 1, marginLeft: 16 }}
+          style={{ flex: 1, marginLeft: (!event.isSeated || (selectedCategory && isStandingCat(selectedCategory.name))) ? 16 : 0 }}
         />
       </View>
 

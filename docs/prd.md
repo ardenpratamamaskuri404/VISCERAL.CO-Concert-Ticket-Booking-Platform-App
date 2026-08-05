@@ -7,8 +7,8 @@ Versi: 3.0 (Disesuaikan dengan Ketentuan Tugas Resmi) | Update: 28 Juli 2026
 ## 1. Overview & Vision
 
 **VISCERAL.CO** adalah sistem pemesanan tiket konser end-to-end yang mencakup:
-- Web Admin — kelola event/konser, kategori tiket, artis, verifikasi pembayaran, dashboard penjualan
-- Mobile Pelanggan — jelajah konser, pesan tiket, riwayat pesanan, e-tiket QR
+- Web Admin — kelola event/konser, kategori tiket, artis, verifikasi pembayaran, dashboard penjualan, serta **Gate Check-in via Web Scanner**
+- Mobile Pelanggan — **Eksklusif** untuk Customer: jelajah konser, pesan tiket, riwayat pesanan, e-tiket QR
 
 **Problem Statement**: Sistem ticketing konser konvensional rawan kesalahan kuota tiket, verifikasi pembayaran manual yang lambat/tidak transparan, dan minimnya visibilitas admin terhadap penjualan per kategori tiket.
 
@@ -126,8 +126,9 @@ npm install axios lucide-react-native react-native-qrcode-svg socket.io-client
 npx expo install react-native-reanimated moti react-native-webview
 ```
 
-### 3.4 Mobile Gate Check-In `(Inovasi — di luar ketentuan soal)`
-- Scanner: expo-camera / expo-barcode-scanner, dipakai admin untuk scan e-tiket saat masuk venue
+### 3.4 Web Gate Check-In (Scanner) `(Inovasi — di luar ketentuan soal)`
+- Scanner Gate diintegrasikan di **Web Dashboard Admin**, bukan di Mobile.
+- Admin menggunakan halaman khusus ScannerGateAdmin untuk memasukkan/memindai kode tiket secara langsung.
 
 ### 3.5 DevOps & Tooling
 - Testing: Vitest/Jest (unit), Supertest (API integration)
@@ -149,6 +150,7 @@ Melengkapi FR-04 (baseline soal: upload bukti transfer manual + verifikasi admin
   5. Kalau signature valid & status `SUCCESS` → jalankan logic yang sama persis dengan `approveOrder()` (Bagian 3 `alur-aplikasi.md`) supaya 1 sumber logic tidak duplikat antara verifikasi manual admin vs webhook otomatis
 - Field tambahan di schema: lihat `paymentMethod`, `dokuReferenceId`, `paymentChannel` di Bagian 6.2 (schema `Order`)
 - Endpoint terkait: lihat Bagian 7.6
+- *Catatan MVP: Pada tahap implementasi awal ini, flow DOKU telah **disimulasikan** sepenuhnya dari sisi antarmuka dan backend kita (Mock Virtual Account), sehingga pengguna tetap dapat merasakan *User Experience* pembayaran otomatis tanpa harus terikat ke infrastruktur Sandbox eksternal.*
 
 ### 3.7 OTP Gateway — Fonnte (WhatsApp API)
 
@@ -161,7 +163,7 @@ Dipakai untuk verifikasi register/login (FR-01) & reset password, menggantikan/m
   2. Backend request ke API Fonnte untuk kirim pesan WhatsApp berisi kode OTP ke `phoneNumber` user
   3. Customer input 6 digit di halaman OTP Verification (`design.md` Bagian 6) → backend cocokkan & tandai user/aksi terverifikasi
   4. Rate limit percobaan kirim ulang (resend) & percobaan verifikasi (cegah brute-force) — bagian dari NFR-03
-- **Fallback**: kalau kuota/API Fonnte gagal, sediakan jalur OTP via email sebagai cadangan (jangan biarkan seluruh alur auth macet total karena 1 provider eksternal down) — lihat mitigasi di Bagian 9
+- *Catatan MVP: Fonnte di-mock pada versi saat ini (OTP muncul di log/console backend) agar proses review fitur tidak terhambat oleh kuota API pihak ketiga, namun struktur backend sudah sepenuhnya siap untuk menembak endpoint Fonnte jika API Key dimasukkan.*
 
 ---
 
@@ -171,7 +173,8 @@ Soal menyebut 1 role "Admin" untuk web dan "Pelanggan" untuk mobile. Sistem ini 
 
 | Fitur / Aksi | Superadmin `(Inovasi split)` | Admin | Customer |
 |---|---|---|---|
-| Login | ✅ | ✅ | ✅ (+Register) |
+| Login Web | ✅ | ✅ | ✅ |
+| Login Mobile | ❌ | ❌ | ✅ (Eksklusif) |
 | CRUD Event/Konser | ✅ | ✅ | ❌ |
 | CRUD Kategori Tiket | ✅ | ✅ | ❌ |
 | CRUD Penyanyi/Artis | ✅ | ✅ | ❌ |
@@ -181,11 +184,10 @@ Soal menyebut 1 role "Admin" untuk web dan "Pelanggan" untuk mobile. Sistem ini 
 | Dashboard Jumlah Tiket Terjual | ✅ | ✅ | ❌ |
 | Management User (Tambah/Hapus Admin) `(Inovasi)` | ✅ | ❌ | ❌ |
 | Melihat Laporan Keuangan Lengkap `(Inovasi)` | ✅ | ❌ | ❌ |
-| Scan QR Gate Check-In `(Inovasi)` | ❌ | ✅ | ❌ |
-| Register & Login | ❌ | ❌ | ✅ |
+| Web Gate Check-In Scanner `(Inovasi)` | ✅ | ✅ | ❌ |
 | Lihat Daftar & Detail Konser | ❌ | ❌ | ✅ |
 | Pilih Kelas/Kursi Tiket | ❌ | ❌ | ✅ |
-| Pesan Tiket & Upload Bukti Bayar | ❌ | ❌ | ✅ |
+| Pesan Tiket & Simulasi DOKU VA | ❌ | ❌ | ✅ |
 | Riwayat Pesanan | ❌ | ❌ | ✅ |
 | Lihat QR Code Tiket | ❌ | ❌ | ✅ |
 | Request Refund `(Inovasi)` | ❌ | ❌ (approve saja) | ✅ (request) |
@@ -231,8 +233,8 @@ Soal menyebut 1 role "Admin" untuk web dan "Pelanggan" untuk mobile. Sistem ini 
 - Status pembayaran & perubahan status order dikirim **real-time** ke customer via Socket.io, bukan cuma polling manual
 - Notifikasi email/in-app saat approved/rejected `(Inovasi)`
 
-**FR-05 — Mobile Gate Check-In** `(Inovasi — di luar soal)`
-- Admin scan QR di gate → validasi tiket, ubah status CHECKED_IN
+**FR-05 — Web Gate Check-In** `(Inovasi — di luar soal)`
+- Admin memverifikasi kode tiket di Web Dashboard → validasi tiket, ubah status CHECKED_IN
 
 **FR-05b — Riwayat Pesanan** *(wajib soal)*
 - Customer lihat semua pesanan (status: menunggu verifikasi, dibayar, ditolak/dibatalkan)
@@ -651,3 +653,12 @@ await prisma.$transaction(async (tx) => {
 ## 12. Catatan Terpisah
 
 Desain visual (warna, logo, navbar, video background, dsb) **sengaja tidak dimasukkan** ke PRD ini — lihat file terpisah `design.md` dan `stitch.md` supaya PRD ini fokus ke workflow, fitur, dan struktur teknis saja.
+
+
+## Status Perbaikan & Pengembangan Terkini (Agustus 2026)
+
+1. **Dokumentasi Canva**: Telah ditambahkan folder docs/canva/ berisi proposal-presentasi.md yang merangkum keseluruhan proyek (Latar Belakang, Tujuan, Fitur, Workflow UML/DFD, UI/UX) untuk pembuatan PPT/Proposal Canva.
+2. **Penyempurnaan Fitur Scanner (Web & Mobile)**: Scanner kini menampilkan data riwayat secara komprehensif, mencakup Nama Penonton, Kategori, Nomor Kursi, Tanggal Acara, serta Jam Open Gate secara realtime.
+3. **Modernisasi UI/UX Mobile**: Pembaruan sistem navigasi menggunakan gaya *Floating Pill Tab Bar* eksklusif yang menyesuaikan *theme* Visceral (Gold & Obsidian).
+4. **Real-time Chat & WebSockets**: Kesalahan rute API HTTP POST pada fitur chat mobile telah dialihkan sepenuhnya menggunakan protokol Socket.IO untuk menjamin obrolan instan dua arah.
+5. **Pembersihan Bug & Code Quality**: Berhasil menyelesaikan ratusan issue/error TypeScript (terutama pada *middleware* otentikasi Hono c.get('user') dan validasi tipe) di direktori web/backend/src/routes/ hingga tercapai *0 errors*.

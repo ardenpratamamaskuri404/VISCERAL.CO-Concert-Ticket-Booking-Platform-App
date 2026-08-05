@@ -18,7 +18,7 @@ const PAYMENT_METHODS: { id: PaymentMethodType; label: string; icon: string; typ
 ];
 
 export default function CheckoutScreen() {
-  const { eventId, categoryId, quantity } = useLocalSearchParams();
+  const { eventId, categoryId, quantity, selectedSeats } = useLocalSearchParams();
   const router = useRouter();
 
   const [event, setEvent] = useState<Event | null>(null);
@@ -51,17 +51,20 @@ export default function CheckoutScreen() {
     
     setSubmitting(true);
     try {
-      const res = await api.post('/orders', {
+      const parsedSeats = selectedSeats ? (selectedSeats as string).split(',') : [];
+      
+      const tickets = parsedSeats.length > 0 
+        ? parsedSeats.map(seat => ({ categoryId: category.id, seatNumber: seat }))
+        : Array.from({ length: Number(quantity) }).map(() => ({ categoryId: category.id }));
+
+      const res = await api.post('/orders/checkout', {
         eventId: event.id,
-        tickets: Array.from({ length: Number(quantity) }).map(() => ({
-          categoryId: category.id,
-          // We let backend handle seat auto-assignment for simplicity
-        })),
+        tickets,
         paymentMethod: selectedPayment
       });
 
       if (res.data?.success) {
-        const orderId = res.data.data.id;
+        const orderId = res.data.order.id;
         // Redirect to payment screen
         router.replace(`/payment/${orderId}`);
       }
@@ -126,7 +129,12 @@ export default function CheckoutScreen() {
 
           <Text style={{ color: Colors.gold, fontSize: 12, fontWeight: '800', marginBottom: 12, letterSpacing: 1 }}>DETAIL TIKET</Text>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-            <Text style={{ color: Colors.white, fontSize: 14 }}>{category.name} (x{qty})</Text>
+            <View>
+              <Text style={{ color: Colors.white, fontSize: 14 }}>{category.name} (x{qty})</Text>
+              {selectedSeats && (
+                <Text style={{ color: Colors.textMuted, fontSize: 12, marginTop: 4 }}>Kursi: {(selectedSeats as string).replace(/,/g, ', ')}</Text>
+              )}
+            </View>
             <Text style={{ color: Colors.white, fontSize: 14, fontWeight: '700' }}>Rp {subtotal.toLocaleString('id-ID')}</Text>
           </View>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>

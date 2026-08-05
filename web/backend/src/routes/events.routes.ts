@@ -4,7 +4,7 @@ import { Hono } from 'hono';
 import { prisma } from '../config/db';
 import { authMiddleware } from '../middlewares/auth.middleware';
 
-const eventsRoutes = new Hono();
+const eventsRoutes = new Hono<{ Variables: { user: any } }>();
 
 // Helper to calculate available quota and Early Bird validity
 async function processEventCategories(event: any) {
@@ -139,7 +139,7 @@ eventsRoutes.post('/', authMiddleware, async (c) => {
     const venueName = body['venueName'] as string;
     const description = body['description'] as string;
     const eventDate = body['eventDate'] as string;
-    const isSeated = body['isSeated'] === 'true' || body['isSeated'] === true;
+    const isSeated = body['isSeated'] === 'true' || String(body['isSeated']) === 'true';
     let categories;
     try {
       categories = typeof body['categories'] === 'string' ? JSON.parse(body['categories'] as string) : body['categories'];

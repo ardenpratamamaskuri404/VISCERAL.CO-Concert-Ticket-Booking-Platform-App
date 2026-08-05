@@ -99,6 +99,19 @@ export const StoreProvider = ({ children }) => {
         // Auto update orders list in admin dashboard
         setOrders(prev => prev.map(o => o.id === data.id ? { ...o, status: 'PAID' } : o));
       });
+
+      socket.on('ticket_scanned', (data) => {
+        // Update ticket status instantly in the global orders state
+        setOrders(prev => prev.map(ord => {
+          if (ord.id === data.orderId) {
+             return {
+               ...ord,
+               tickets: ord.tickets?.map(t => t.id === data.id ? { ...t, status: 'CHECKED_IN', checkedInAt: data.checkedInAt } : t)
+             };
+          }
+          return ord;
+        }));
+      });
       
       socket.on('new_notification', () => {
         setUnreadNotificationCount((prev) => prev + 1);

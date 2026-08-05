@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform
 import { useRouter } from 'expo-router';
 import { Colors } from '../../src/constants/theme';
 import GoldButton from '../../src/components/GoldButton';
+import VisceralLogo from '../../src/components/VisceralLogo';
 import { useAuth } from '../../src/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -86,6 +87,11 @@ export default function RegisterScreen() {
     >
       <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 24, paddingTop: 60 }}>
         
+        {/* Logo */}
+        <View style={{ alignItems: 'center', marginBottom: 24 }}>
+          <VisceralLogo size={100} />
+        </View>
+
         <View style={{ marginBottom: 32 }}>
           <Text style={{ color: Colors.gold, fontSize: 32, fontWeight: '900', marginBottom: 8 }}>Daftar Akun</Text>
           <Text style={{ color: Colors.textMuted, fontSize: 16 }}>Bergabunglah dengan VISCERAL.CO</Text>
