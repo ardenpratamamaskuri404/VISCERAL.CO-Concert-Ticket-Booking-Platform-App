@@ -8,6 +8,9 @@ build/
 .env
 .env.local
 .env.*.local
+
+# Documentation
+docs/
 # IDE & system files
 .DS_Store
 Thumbs.db
