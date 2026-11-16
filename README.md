@@ -72,20 +72,6 @@ sistem-konser-app/
 └── docs/               # Dokumentasi lengkap (ERD, Schema, Panduan)
 ```
 
----
-
-## 💻 Quick Start
-
-Bagi tim *developer* yang ingin menjalankan *project* ini secara lokal, silakan ikuti panduan lengkap *step-by-step* di bawah ini:
-
-👉 **[BACA PANDUAN SETUP LENGKAP (PANDUAN_SETUP.md)](./docs/PANDUAN_SETUP.md)**
-
-*Panduan tersebut mencakup:*
-1. Impor Database ke MySQL Workbench
-2. Menjalankan Hono Backend API
-3. Menjalankan React Frontend
-
----
 
 ## 📱 Mobile Scanner App
 Aplikasi khusus (*React Native/Expo*) untuk *Gate Scanner* tiket di lapangan dikelola pada repository terpisah untuk skalabilitas *deployment*. Aplikasi ini terhubung langsung via WebSocket ke backend utama ini.
