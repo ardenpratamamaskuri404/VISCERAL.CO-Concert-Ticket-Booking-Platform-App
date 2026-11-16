@@ -90,9 +90,12 @@ export default function PaymentScreen() {
   };
 
   const copyVirtualAccount = async () => {
-    // In a real app, this would be the actual VA number from DOKU response
     const vaNumber = `8900${order?.orderNumber?.replace(/\D/g, '').substring(0, 8)}`;
-    // Note: requires expo-clipboard to be installed, we use a fallback alert if not
+    try {
+      await Clipboard.setStringAsync(vaNumber);
+    } catch (err) {
+      // fallback
+    }
     Alert.alert('Berhasil', 'Nomor Virtual Account disalin: ' + vaNumber);
   };
 

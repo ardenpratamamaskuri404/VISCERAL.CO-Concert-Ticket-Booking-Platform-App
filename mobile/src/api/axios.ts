@@ -23,12 +23,17 @@ const api = axios.create({
 api.interceptors.request.use(
   async (config) => {
     try {
-      const token = await SecureStore.getItemAsync('visceral_token');
+      let token = null;
+      if (Platform.OS === 'web') {
+        token = typeof window !== 'undefined' ? localStorage.getItem('visceral_token') : null;
+      } else {
+        token = await SecureStore.getItemAsync('visceral_token');
+      }
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
     } catch (e) {
-      console.warn('Failed to get token from SecureStore:', e);
+      console.warn('Failed to get token:', e);
     }
     return config;
   },
@@ -42,7 +47,11 @@ api.interceptors.response.use(
     if (error.response && (error.response.status === 401 || error.response.status === 403)) {
       // Token expired or invalid — clear stored data
       try {
-        await SecureStore.deleteItemAsync('visceral_token');
+        if (Platform.OS === 'web') {
+          if (typeof window !== 'undefined') localStorage.removeItem('visceral_token');
+        } else {
+          await SecureStore.deleteItemAsync('visceral_token');
+        }
       } catch (e) {
         // Ignore cleanup errors
       }

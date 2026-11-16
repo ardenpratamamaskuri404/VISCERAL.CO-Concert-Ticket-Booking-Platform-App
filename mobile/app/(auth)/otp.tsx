@@ -69,13 +69,13 @@ export default function OTPScreen() {
 
     // Auto focus next
     if (text && index < 5) {
-      inputRefs.current[index + 1]?.focus();
+      (inputRefs.current[index + 1] as any)?.focus();
     }
   };
 
   const handleKeyPress = (e: any, index: number) => {
     if (e.nativeEvent.key === 'Backspace' && !otp[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
+      (inputRefs.current[index - 1] as any)?.focus();
     }
   };
 

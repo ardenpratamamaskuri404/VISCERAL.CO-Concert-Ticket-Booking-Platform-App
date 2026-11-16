@@ -1,8 +1,32 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 import api from '../api/axios';
 import { User } from '../types';
+
+const setStoredToken = async (val: string) => {
+  if (Platform.OS === 'web') {
+    if (typeof window !== 'undefined') localStorage.setItem('visceral_token', val);
+  } else {
+    await SecureStore.setItemAsync('visceral_token', val);
+  }
+};
+
+const getStoredToken = async () => {
+  if (Platform.OS === 'web') {
+    return typeof window !== 'undefined' ? localStorage.getItem('visceral_token') : null;
+  }
+  return await SecureStore.getItemAsync('visceral_token');
+};
+
+const deleteStoredToken = async () => {
+  if (Platform.OS === 'web') {
+    if (typeof window !== 'undefined') localStorage.removeItem('visceral_token');
+  } else {
+    await SecureStore.deleteItemAsync('visceral_token');
+  }
+};
 
 interface AuthContextType {
   currentUser: User | null;
@@ -36,7 +60,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const restoreSession = async () => {
     try {
-      const storedToken = await SecureStore.getItemAsync('visceral_token');
+      const storedToken = await getStoredToken();
       const storedUser = await AsyncStorage.getItem('visceral_user');
 
       if (storedToken && storedUser) {
@@ -55,7 +79,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const res = await api.post('/auth/login', { email, password });
       const { token: newToken, user } = res.data;
 
-      await SecureStore.setItemAsync('visceral_token', newToken);
+      await setStoredToken(newToken);
       await AsyncStorage.setItem('visceral_user', JSON.stringify(user));
 
       setToken(newToken);
@@ -73,7 +97,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const res = await api.post('/auth/register', data);
       const { token: newToken, user } = res.data;
 
-      await SecureStore.setItemAsync('visceral_token', newToken);
+      await setStoredToken(newToken);
       await AsyncStorage.setItem('visceral_user', JSON.stringify(user));
 
       setToken(newToken);
@@ -88,7 +112,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = async () => {
     try {
-      await SecureStore.deleteItemAsync('visceral_token');
+      await deleteStoredToken();
       await AsyncStorage.removeItem('visceral_user');
     } catch (e) {
       console.warn('Logout cleanup error:', e);
