@@ -28,9 +28,9 @@ Di sisi klien, kami menghadirkan pengalaman visual kelas dunia melalui animasi 3
 
 - 💺 **Real-Time Seat Locking Mechanism:** Memastikan tidak ada *double-booking* saat *war* tiket. Kursi otomatis terkunci selama 10 menit menggunakan Socket.io.
 - ⚡ **Ultra-Fast API Server:** Ditenagai oleh **Hono.js** yang jauh lebih ringan dan cepat dibandingkan framework tradisional Node.js, disandingkan dengan **Prisma ORM**.
-- 💳 **Automated Payment Gateway:** Terintegrasi penuh dengan **Doku Sandbox** mendukung Virtual Account, QRIS, dan E-Wallet dengan konfirmasi instan.
+- 💳 **Automated Payment Gateway:** Terintegrasi penuh dengan **DOKU Payment Gateway** mendukung Virtual Account, QRIS, E-Wallet, dan Kartu Kredit dengan konfirmasi instan via Webhook.
 - 💬 **Live Chat & Notifications:** Dukungan *live chat* real-time berbasis WebSocket antara pengguna dan admin.
-- 📱 **WhatsApp Integration:** Pengiriman *E-Ticket* langsung ke WhatsApp pengguna melalui **Fonnte API**.
+- 📧 **Automated Email Security:** Pengiriman kode verifikasi OTP resmi secara otomatis ke email pengguna via SMTP Mailpit.
 - 🎫 **Instant QR E-Ticket:** Tiket diterbitkan *real-time* dengan kode QR terenkripsi, siap dipindai oleh *Scanner Gate* di lapangan.
 - 🎨 **Premium 3D UI/UX:** Memanfaatkan **Framer Motion** & **GSAP** untuk menghadirkan mikro-interaksi dinamis dan *parallax scrolling*.
 

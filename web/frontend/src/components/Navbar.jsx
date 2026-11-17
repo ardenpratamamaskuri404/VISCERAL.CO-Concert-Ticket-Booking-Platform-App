@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useStore } from '../context/StoreContext';
 import { Sun, Moon, Ticket, User, LogOut, Shield, Compass, Home, Languages, Info, Settings, Bell } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import logoPng from '../assets/logo.png';
+import logoSvg from '../assets/logo.svg';
 import { getImageUrl } from '../utils/image';
 
 export default function Navbar() {
@@ -45,8 +45,8 @@ export default function Navbar() {
         
         {/* Brand Logo */}
         <Link to="/" className="flex items-center gap-3 group">
-          <div className="w-10 h-10 rounded-full bg-obsidian border border-gold/40 flex items-center justify-center p-1.5 shadow-gold-glow group-hover:scale-105 transition-transform">
-            <img src={logoPng} alt="VISCERAL.CO" className="w-full h-full object-contain" />
+          <div className="w-11 h-11 rounded-full bg-obsidian border border-gold/40 flex items-center justify-center overflow-hidden shadow-gold-glow group-hover:scale-105 transition-transform">
+            <img src={logoSvg} alt="VISCERAL.CO" className="w-full h-full object-cover scale-105" />
           </div>
           <div className="flex flex-col">
             <span className="font-extrabold text-base tracking-wider text-obsidian dark:text-brand-lightText flex items-center gap-1 font-sans">

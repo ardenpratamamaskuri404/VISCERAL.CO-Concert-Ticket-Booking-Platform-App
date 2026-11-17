@@ -45,7 +45,7 @@ export default function ForgotPasswordPage() {
 
           <h2 className="text-2xl font-extrabold tracking-tight text-center">Lupa Password?</h2>
           <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-1 mb-6">
-            Masukkan email terdaftar untuk menerima petunjuk reset password via WhatsApp OTP Fonnte.
+            Masukkan alamat email akun VISCERAL.CO Anda untuk menerima kode verifikasi OTP pemulihan kata sandi.
           </p>
 
           {errorMsg && (
@@ -56,7 +56,7 @@ export default function ForgotPasswordPage() {
 
           {sent ? (
             <div className="p-4 rounded-2xl bg-gold/10 border border-gold/30 text-gold text-xs text-center font-semibold">
-              Petunjuk reset password dikirim! Mengarahkan ke halaman Reset Password...
+              Kode OTP telah dikirimkan ke email Anda! Mengarahkan ke halaman Reset Password...
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">

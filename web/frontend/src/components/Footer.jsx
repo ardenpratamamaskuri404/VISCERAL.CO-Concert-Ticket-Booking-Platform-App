@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
-import logoPng from '../assets/logo.png';
+import logoSvg from '../assets/logo.svg';
 
 export default function Footer() {
   return (
@@ -9,8 +9,8 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-4 md:px-8 grid grid-cols-1 md:grid-cols-4 gap-12 pb-12 border-b border-obsidian-border">
         <div className="md:col-span-2">
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 rounded-full bg-obsidian-surface border border-gold/40 flex items-center justify-center p-2 shadow-gold-glow">
-              <img src={logoPng} alt="VISCERAL.CO" className="w-full h-full object-contain" />
+            <div className="w-12 h-12 rounded-full bg-obsidian-surface border border-gold/40 flex items-center justify-center overflow-hidden shadow-gold-glow">
+              <img src={logoSvg} alt="VISCERAL.CO" className="w-full h-full object-cover scale-105" />
             </div>
             <span className="font-extrabold text-2xl text-white tracking-tight">VISCERAL<span className="text-gold">.CO</span></span>
           </div>

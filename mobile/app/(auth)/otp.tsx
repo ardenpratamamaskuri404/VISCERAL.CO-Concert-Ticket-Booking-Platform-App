@@ -39,9 +39,7 @@ export default function OTPScreen() {
       const res = await api.post('/auth/forgot-password', { email });
       setOtpSent(true);
       setCountdown(60);
-      if (res.data.isMock) {
-        setMockOtpMsg(`[MOCK MODE] Kode OTP Anda: ${res.data.mockOtp}`);
-      }
+      setMockOtpMsg(`Kode verifikasi OTP telah dikirimkan ke email Anda.`);
     } catch (e: any) {
       setError(e.response?.data?.error || 'Gagal mengirim OTP');
     } finally {
@@ -114,8 +112,8 @@ export default function OTPScreen() {
         ) : null}
 
         {mockOtpMsg ? (
-          <View style={{ backgroundColor: Colors.goldDark, padding: 12, borderRadius: 12, marginBottom: 20 }}>
-            <Text style={{ color: Colors.obsidian, fontSize: 14, fontWeight: '900', textAlign: 'center' }}>{mockOtpMsg}</Text>
+          <View style={{ backgroundColor: 'rgba(200, 155, 60, 0.15)', borderWidth: 1, borderColor: Colors.gold, padding: 12, borderRadius: 12, marginBottom: 20 }}>
+            <Text style={{ color: Colors.gold, fontSize: 13, fontWeight: '700', textAlign: 'center' }}>{mockOtpMsg}</Text>
           </View>
         ) : null}
 

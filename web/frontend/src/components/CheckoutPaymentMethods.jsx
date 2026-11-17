@@ -6,8 +6,8 @@ export default function CheckoutPaymentMethods({ paymentMethod, setPaymentMethod
     <div className="bg-white dark:bg-obsidian-card p-6 rounded-3xl border border-gray-200 dark:border-obsidian-border shadow-sm">
       <h3 className="text-base font-extrabold mb-4 pb-2 border-b border-gray-200 dark:border-obsidian-border flex items-center justify-between">
         <span>Pilih Metode Pembayaran</span>
-        <span className="text-[10px] font-extrabold bg-gold/10 text-gold px-2.5 py-1 rounded-full uppercase">
-          Sandbox Environment
+        <span className="text-[10px] font-extrabold bg-gold/10 text-gold px-2.5 py-1 rounded-full uppercase tracking-wider">
+          Metode Pembayaran Resmi
         </span>
       </h3>
 

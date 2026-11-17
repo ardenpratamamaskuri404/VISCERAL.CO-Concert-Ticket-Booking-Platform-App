@@ -3,7 +3,6 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from '../context/StoreContext';
 import Navbar from '../components/Navbar';
 import { MessageSquare, ArrowRight, CheckCircle2, RotateCw } from 'lucide-react';
-import logoPng from '../assets/logo.png';
 
 export default function OtpPage() {
   const { state } = useLocation();
@@ -79,9 +78,9 @@ export default function OtpPage() {
             <MessageSquare className="w-7 h-7 text-gold" />
           </div>
 
-          <h2 className="text-2xl font-extrabold tracking-tight">Verifikasi OTP WhatsApp</h2>
+          <h2 className="text-2xl font-extrabold tracking-tight">Verifikasi Kode OTP</h2>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 mb-6">
-            Kode 6-digit dikirim via WhatsApp Fonnte ke nomor <span className="font-bold text-gray-900 dark:text-white">{maskedPhone}</span>
+            Masukkan 6-digit kode verifikasi keamanan yang telah dikirimkan ke kontak akun Anda.
           </p>
 
           {success ? (

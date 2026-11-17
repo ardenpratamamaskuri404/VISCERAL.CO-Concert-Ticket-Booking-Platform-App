@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from '../context/StoreContext';
 import { LayoutDashboard, Calendar, CheckSquare, Users, FileText, ArrowLeft, LogOut, ShieldCheck, Sparkles, Settings, Bell, MessageCircle } from 'lucide-react';
-import logoPng from '../assets/logo.png';
+import logoSvg from '../assets/logo.svg';
 import { getImageUrl } from '../utils/image';
 
 export default function AdminSidebar() {
@@ -20,8 +20,8 @@ export default function AdminSidebar() {
         {/* Sidebar Header / Logo */}
         <div className="p-5 border-b border-gray-200 dark:border-obsidian-border flex items-center justify-between">
           <Link to="/admin/dashboard" className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-gray-50 dark:bg-obsidian-surface border border-gold/40 flex items-center justify-center p-1.5 shadow-gold-glow">
-              <img src={logoPng} alt="VISCERAL.CO" className="w-full h-full object-contain" />
+            <div className="w-10 h-10 rounded-full bg-gray-50 dark:bg-obsidian-surface border border-gold/40 flex items-center justify-center overflow-hidden shadow-gold-glow">
+              <img src={logoSvg} alt="VISCERAL.CO" className="w-full h-full object-cover scale-105" />
             </div>
             <div>
               <h1 className="font-extrabold text-sm tracking-wider text-gray-900 dark:text-white">
