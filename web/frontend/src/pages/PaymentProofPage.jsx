@@ -145,13 +145,13 @@ export default function PaymentProofPage() {
               )}
             </div>
           ) : (
-            /* Doku Sandbox Payment Simulator View */
+            /* Doku Official Payment Gateway View */
             <div className="space-y-6">
-              <div className="p-6 rounded-2xl bg-obsidian text-white border border-gold/40 text-center space-y-4">
+              <div className="p-6 rounded-2xl bg-gray-50 dark:bg-obsidian text-gray-900 dark:text-white border border-gold/40 text-center space-y-4 transition-colors">
                 <QrCode className="w-20 h-20 text-gold mx-auto" />
                 <div>
                   <h3 className="font-extrabold text-sm text-gold">DOKU OFFICIAL PAYMENT GATEWAY</h3>
-                  <p className="text-xs text-gray-300 mt-1">
+                  <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">
                     Silakan klik tombol di bawah untuk diarahkan ke portal pembayaran resmi DOKU yang aman dan terenkripsi.
                   </p>
                 </div>

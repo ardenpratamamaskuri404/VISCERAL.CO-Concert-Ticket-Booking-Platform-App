@@ -132,9 +132,7 @@ authRoutes.post('/forgot-password', async (c) => {
     return c.json({ 
       success: true,
       message: 'Kode verifikasi OTP telah dikirimkan ke email Anda.',
-      email: user.email,
-      // Tetap sediakan mockOtp untuk fallback kemudahan debugging
-      mockOtp: otp
+      email: user.email
     });
   } catch (error: any) {
     console.error('Forgot Password Error:', error);

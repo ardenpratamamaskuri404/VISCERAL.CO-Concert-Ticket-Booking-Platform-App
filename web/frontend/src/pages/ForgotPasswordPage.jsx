@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import Navbar from '../components/Navbar';
-import { Mail, ArrowRight, KeyRound } from 'lucide-react';
+import { Mail, ArrowRight } from 'lucide-react';
+import logoSvg from '../assets/logo.svg';
 
 export default function ForgotPasswordPage() {
   const navigate = useNavigate();
@@ -39,11 +40,11 @@ export default function ForgotPasswordPage() {
           
           <div className="pulse-line-oxblood w-full absolute top-0 left-0"></div>
 
-          <div className="w-12 h-12 rounded-2xl bg-obsidian border border-gold/40 flex items-center justify-center p-2.5 mx-auto mb-4 shadow-gold-glow">
-            <KeyRound className="w-6 h-6 text-gold" />
+          <div className="w-16 h-16 rounded-full bg-obsidian border border-gold/40 flex items-center justify-center overflow-hidden mx-auto mb-4 shadow-gold-glow">
+            <img src={logoSvg} alt="VISCERAL.CO" className="w-full h-full object-cover scale-105" />
           </div>
 
-          <h2 className="text-2xl font-extrabold tracking-tight text-center">Lupa Password?</h2>
+          <h2 className="text-2xl font-extrabold tracking-tight text-center text-gray-900 dark:text-white">Lupa Password?</h2>
           <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-1 mb-6">
             Masukkan alamat email akun VISCERAL.CO Anda untuk menerima kode verifikasi OTP pemulihan kata sandi.
           </p>

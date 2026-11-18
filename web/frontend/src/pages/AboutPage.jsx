@@ -144,9 +144,9 @@ export default function AboutPage() {
 
       {/* Syarat & Ketentuan Ringkas */}
       <section className="py-16 px-4 md:px-8 max-w-4xl mx-auto">
-        <div className="bg-obsidian rounded-3xl p-8 md:p-12 border border-gold/20 shadow-obsidian-glow">
-          <h2 className="text-2xl font-extrabold text-white mb-6">Syarat & Ketentuan Ringkas</h2>
-          <ul className="space-y-4 text-sm text-gray-300 leading-relaxed">
+        <div className="bg-white dark:bg-obsidian rounded-3xl p-8 md:p-12 border border-gray-200 dark:border-gold/20 shadow-obsidian-glow transition-colors">
+          <h2 className="text-2xl font-extrabold text-gray-900 dark:text-white mb-6">Syarat & Ketentuan Ringkas</h2>
+          <ul className="space-y-4 text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
             <li className="flex gap-3"><span className="text-gold font-bold">1.</span> Pembelian tiket bersifat final dan tidak dapat dibatalkan kecuali melalui fitur Request Refund sesuai kebijakan event.</li>
             <li className="flex gap-3"><span className="text-gold font-bold">2.</span> Setiap akun hanya boleh membeli maksimal 4 tiket per event untuk menjaga keadilan distribusi.</li>
             <li className="flex gap-3"><span className="text-gold font-bold">3.</span> QR Code tiket bersifat unik dan hanya bisa di-scan 1 kali. Jangan membagikan screenshot tiket Anda.</li>
@@ -183,7 +183,7 @@ export default function AboutPage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-obsidian text-brand-lightText py-8 border-t border-obsidian-border">
+      <footer className="bg-gray-100 dark:bg-obsidian text-gray-600 dark:text-brand-lightText py-8 border-t border-gray-200 dark:border-obsidian-border transition-colors">
         <div className="max-w-7xl mx-auto px-4 md:px-8 flex flex-col sm:flex-row justify-between items-center text-sm text-gray-500 font-medium">
           <p>© 2026 VISCERAL.CO — Hak Cipta Dilindungi Undang-Undang.</p>
         </div>
