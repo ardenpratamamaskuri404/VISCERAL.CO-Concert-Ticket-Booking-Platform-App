@@ -237,7 +237,7 @@ export default function Navbar() {
           <div className="relative" ref={profileRef}>
             <button
               onClick={() => setProfileOpen(!profileOpen)}
-              className="flex items-center gap-2 pl-1.5 pr-2.5 py-1 rounded-full bg-obsidian text-white border border-gold/30 hover:border-gold transition-colors text-xs font-medium"
+              className="flex items-center gap-2 pl-1.5 pr-3.5 py-1 rounded-full bg-obsidian text-white border border-gold/30 hover:border-gold transition-colors text-xs font-medium"
             >
               <div className="w-7 h-7 rounded-full bg-gold text-obsidian font-bold flex items-center justify-center text-[11px] overflow-hidden shrink-0">
                 {currentUser?.avatarUrl ? (
@@ -246,7 +246,7 @@ export default function Navbar() {
                   currentUser ? currentUser.fullName.charAt(0) : '?'
                 )}
               </div>
-              <div className="hidden sm:flex flex-col items-start text-left leading-tight max-w-[115px] xl:max-w-[140px]">
+              <div className="hidden sm:flex flex-col items-start text-left leading-tight max-w-[130px] xl:max-w-[160px]">
                 <span className="text-[11px] font-bold text-white truncate w-full">
                   {currentUser ? currentUser.fullName : t('nav.guest')}
                 </span>
@@ -256,9 +256,6 @@ export default function Navbar() {
                   </span>
                 )}
               </div>
-              <span className="bg-oxblood text-[9px] px-1.5 py-0.5 rounded-full font-semibold uppercase text-white shrink-0">
-                {currentUser ? currentUser.role : 'GUEST'}
-              </span>
             </button>
 
             {/* Dropdown Menu */}
