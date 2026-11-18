@@ -171,4 +171,11 @@ Proyek ini dirancang dan dikembangkan oleh:
 
 ---
 
+## Lisensi
+
+Proyek ini dilindungi oleh **Proprietary License (All Rights Reserved)** pada file [LICENSE](./LICENSE).  
+Dilarang menyalin, memodifikasi, mendistribusikan ulang, atau menggunakan kode sumber maupun aset dalam repositori ini tanpa izin tertulis dari pemilik hak cipta.
+
+---
+
 > "Merangkum Co-op, Co-creators, dan Connection untuk menghadirkan koneksi emosional pertunjukan musik secara langsung." — **VISCERAL.CO**

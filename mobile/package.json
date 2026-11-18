@@ -1,6 +1,8 @@
 {
   "name": "mobile",
   "version": "1.0.0",
+  "private": true,
+  "license": "UNLICENSED",
   "main": "expo-router/entry",
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
