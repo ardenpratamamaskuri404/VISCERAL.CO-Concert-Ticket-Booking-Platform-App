@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useStore } from '../context/StoreContext';
-import { Sun, Moon, Ticket, User, LogOut, Shield, Compass, Home, Languages, Info, Settings, Bell } from 'lucide-react';
+import { Sun, Moon, Ticket, User, LogOut, Shield, Compass, Home, Languages, Info, Settings, Bell, Disc3, Calendar } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import logoSvg from '../assets/logo.svg';
 import { getImageUrl } from '../utils/image';
@@ -12,10 +12,12 @@ export default function Navbar() {
   const location = useLocation();
   const [profileOpen, setProfileOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { t, i18n } = useTranslation();
   const currentLang = i18n.language;
   const langRef = useRef(null);
   const profileRef = useRef(null);
+  const mobileMenuRef = useRef(null);
 
   const isActive = (path) => location.pathname === path;
 
@@ -29,6 +31,7 @@ export default function Navbar() {
     const handleClickOutside = (e) => {
       if (langRef.current && !langRef.current.contains(e.target)) setLangOpen(false);
       if (profileRef.current && !profileRef.current.contains(e.target)) setProfileOpen(false);
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(e.target)) setMobileMenuOpen(false);
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -41,7 +44,7 @@ export default function Navbar() {
 
   return (
     <header className="fixed top-4 left-0 right-0 z-50 flex justify-center px-4">
-      <nav className="glass-pill max-w-5xl w-full rounded-full px-4 py-2.5 flex items-center justify-between shadow-obsidian-glow transition-all duration-300">
+      <nav className="glass-pill max-w-7xl w-full rounded-full px-4 py-2 flex items-center justify-between gap-2 shadow-obsidian-glow transition-all duration-300">
         
         {/* Brand Logo */}
         <Link to="/" className="flex items-center gap-3 group">
@@ -59,10 +62,10 @@ export default function Navbar() {
         </Link>
 
         {/* Menu Pill Track */}
-        <div className="hidden md:flex items-center gap-1 bg-gray-100/80 dark:bg-obsidian-card/90 p-1 rounded-full border border-gray-200 dark:border-obsidian-border">
+        <div className="hidden lg:flex items-center gap-0.5 bg-gray-100/80 dark:bg-obsidian-card/90 p-1 rounded-full border border-gray-200 dark:border-obsidian-border">
           <Link
             to="/landing"
-            className={`px-4 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all ${
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 whitespace-nowrap transition-all ${
               isActive('/landing') || isActive('/')
                 ? 'bg-obsidian text-gold shadow-sm font-bold'
                 : 'text-gray-600 dark:text-gray-300 hover:text-gold'
@@ -74,7 +77,7 @@ export default function Navbar() {
 
           <Link
             to="/explore"
-            className={`px-4 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all ${
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 whitespace-nowrap transition-all ${
               isActive('/explore')
                 ? 'bg-obsidian text-gold shadow-sm font-bold'
                 : 'text-gray-600 dark:text-gray-300 hover:text-gold'
@@ -84,25 +87,46 @@ export default function Navbar() {
             {t('nav.explore')}
           </Link>
 
-          {/* About link — always visible but especially useful for guests */}
-          {!currentUser && (
-            <Link
-              to="/about"
-              className={`px-4 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                isActive('/about')
-                  ? 'bg-obsidian text-gold shadow-sm font-bold'
-                  : 'text-gray-600 dark:text-gray-300 hover:text-gold'
-              }`}
-            >
-              <Info className="w-3.5 h-3.5" />
-              {t('nav.about')}
-            </Link>
-          )}
+          <Link
+            to="/artists"
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 whitespace-nowrap transition-all ${
+              isActive('/artists')
+                ? 'bg-obsidian text-gold shadow-sm font-bold'
+                : 'text-gray-600 dark:text-gray-300 hover:text-gold'
+            }`}
+          >
+            <Disc3 className="w-3.5 h-3.5" />
+            {t('nav.artists')}
+          </Link>
+
+          <Link
+            to="/schedule"
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 whitespace-nowrap transition-all ${
+              isActive('/schedule')
+                ? 'bg-obsidian text-gold shadow-sm font-bold'
+                : 'text-gray-600 dark:text-gray-300 hover:text-gold'
+            }`}
+          >
+            <Calendar className="w-3.5 h-3.5" />
+            {t('nav.schedule')}
+          </Link>
+
+          <Link
+            to="/about"
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 whitespace-nowrap transition-all ${
+              isActive('/about')
+                ? 'bg-obsidian text-gold shadow-sm font-bold'
+                : 'text-gray-600 dark:text-gray-300 hover:text-gold'
+            }`}
+          >
+            <Info className="w-3.5 h-3.5" />
+            {t('nav.about')}
+          </Link>
 
           {currentUser && currentUser.role === 'CUSTOMER' && (
             <Link
               to="/my-tickets"
-              className={`px-4 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all ${
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 whitespace-nowrap transition-all ${
                 isActive('/my-tickets')
                   ? 'bg-obsidian text-gold shadow-sm font-bold'
                   : 'text-gray-600 dark:text-gray-300 hover:text-gold'
@@ -116,7 +140,7 @@ export default function Navbar() {
           {(currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPERADMIN') && (
             <Link
               to="/admin/dashboard"
-              className="px-4 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 bg-oxblood text-white shadow-oxblood-glow hover:bg-oxblood-light transition-all"
+              className="px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 whitespace-nowrap bg-oxblood text-white shadow-oxblood-glow hover:bg-oxblood-light transition-all"
             >
               <Shield className="w-3.5 h-3.5" />
               {t('nav.adminDashboard')}
@@ -175,23 +199,26 @@ export default function Navbar() {
           </div>
 
           {/* Mobile Menu Toggle */}
-          <div className="md:hidden flex items-center">
+          <div className="lg:hidden relative flex items-center" ref={mobileMenuRef}>
             <button
-              onClick={() => setLangOpen(!langOpen)}
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="p-2 rounded-full bg-gray-100 dark:bg-obsidian-surface text-gray-700 dark:text-gold"
+              title="Menu Navigasi"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
-            {langOpen && (
-              <div className="absolute right-0 mt-12 w-48 bg-white dark:bg-obsidian-card border border-gold/20 dark:border-obsidian-border rounded-2xl shadow-2xl p-2 z-50 text-sm flex flex-col gap-1">
-                <Link to="/landing" className="px-3 py-2 rounded-lg hover:bg-gold/10 text-gray-700 dark:text-gray-200">{t('nav.home')}</Link>
-                <Link to="/explore" className="px-3 py-2 rounded-lg hover:bg-gold/10 text-gray-700 dark:text-gray-200">{t('nav.explore')}</Link>
-                {!currentUser && <Link to="/about" className="px-3 py-2 rounded-lg hover:bg-gold/10 text-gray-700 dark:text-gray-200">{t('nav.about')}</Link>}
-                {currentUser?.role === 'CUSTOMER' && <Link to="/my-tickets" className="px-3 py-2 rounded-lg hover:bg-gold/10 text-gray-700 dark:text-gray-200">{t('nav.myTickets')}</Link>}
+            {mobileMenuOpen && (
+              <div className="absolute right-0 top-12 w-52 bg-white dark:bg-obsidian-card border border-gold/20 dark:border-obsidian-border rounded-2xl shadow-2xl p-2 z-50 text-sm flex flex-col gap-1">
+                <Link to="/landing" onClick={() => setMobileMenuOpen(false)} className="px-3 py-2 rounded-lg hover:bg-gold/10 text-gray-700 dark:text-gray-200">{t('nav.home')}</Link>
+                <Link to="/explore" onClick={() => setMobileMenuOpen(false)} className="px-3 py-2 rounded-lg hover:bg-gold/10 text-gray-700 dark:text-gray-200">{t('nav.explore')}</Link>
+                <Link to="/artists" onClick={() => setMobileMenuOpen(false)} className="px-3 py-2 rounded-lg hover:bg-gold/10 text-gray-700 dark:text-gray-200">{t('nav.artists')}</Link>
+                <Link to="/schedule" onClick={() => setMobileMenuOpen(false)} className="px-3 py-2 rounded-lg hover:bg-gold/10 text-gray-700 dark:text-gray-200">{t('nav.schedule')}</Link>
+                <Link to="/about" onClick={() => setMobileMenuOpen(false)} className="px-3 py-2 rounded-lg hover:bg-gold/10 text-gray-700 dark:text-gray-200">{t('nav.about')}</Link>
+                {currentUser?.role === 'CUSTOMER' && <Link to="/my-tickets" onClick={() => setMobileMenuOpen(false)} className="px-3 py-2 rounded-lg hover:bg-gold/10 text-gray-700 dark:text-gray-200">{t('nav.myTickets')}</Link>}
                 {(currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPERADMIN') && (
-                  <Link to="/admin/dashboard" className="px-3 py-2 rounded-lg hover:bg-gold/10 text-gray-700 dark:text-gray-200">{t('nav.adminDashboard')}</Link>
+                  <Link to="/admin/dashboard" onClick={() => setMobileMenuOpen(false)} className="px-3 py-2 rounded-lg hover:bg-gold/10 text-gray-700 dark:text-gray-200">{t('nav.adminDashboard')}</Link>
                 )}
               </div>
             )}
@@ -210,19 +237,26 @@ export default function Navbar() {
           <div className="relative" ref={profileRef}>
             <button
               onClick={() => setProfileOpen(!profileOpen)}
-              className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full bg-obsidian text-white border border-gold/30 hover:border-gold transition-colors text-xs font-medium"
+              className="flex items-center gap-2 pl-1.5 pr-2.5 py-1 rounded-full bg-obsidian text-white border border-gold/30 hover:border-gold transition-colors text-xs font-medium"
             >
-              <div className="w-6 h-6 rounded-full bg-gold text-obsidian font-bold flex items-center justify-center text-[10px] overflow-hidden">
+              <div className="w-7 h-7 rounded-full bg-gold text-obsidian font-bold flex items-center justify-center text-[11px] overflow-hidden shrink-0">
                 {currentUser?.avatarUrl ? (
                   <img src={getImageUrl(currentUser.avatarUrl, 'users')} alt="Avatar" className="w-full h-full object-cover" />
                 ) : (
                   currentUser ? currentUser.fullName.charAt(0) : '?'
                 )}
               </div>
-              <span className="hidden sm:inline max-w-[100px] truncate">
-                {currentUser ? currentUser.fullName : t('nav.guest')}
-              </span>
-              <span className="bg-oxblood text-[9px] px-1.5 py-0.5 rounded-full font-semibold uppercase text-white">
+              <div className="hidden sm:flex flex-col items-start text-left leading-tight max-w-[115px] xl:max-w-[140px]">
+                <span className="text-[11px] font-bold text-white truncate w-full">
+                  {currentUser ? currentUser.fullName : t('nav.guest')}
+                </span>
+                {currentUser?.email && (
+                  <span className="text-[9px] text-gold-light/90 truncate w-full">
+                    {currentUser.email}
+                  </span>
+                )}
+              </div>
+              <span className="bg-oxblood text-[9px] px-1.5 py-0.5 rounded-full font-semibold uppercase text-white shrink-0">
                 {currentUser ? currentUser.role : 'GUEST'}
               </span>
             </button>

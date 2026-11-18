@@ -2,6 +2,8 @@
   "nav": {
     "home": "Beranda",
     "explore": "Jelajah Konser",
+    "artists": "Artis",
+    "schedule": "Jadwal",
     "about": "Tentang",
     "myTickets": "Tiket Saya",
     "adminDashboard": "Dashboard Admin",

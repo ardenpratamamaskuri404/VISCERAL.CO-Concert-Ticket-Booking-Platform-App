@@ -27,6 +27,8 @@ import AdminScannerPage from './pages/AdminScannerPage';
 import AdminUsersPage from './pages/AdminUsersPage';
 import AdminReportsPage from './pages/AdminReportsPage';
 import AboutPage from './pages/AboutPage';
+import ArtistsPage from './pages/ArtistsPage';
+import SchedulePage from './pages/SchedulePage';
 import SettingsPage from './pages/SettingsPage';
 import AdminSettingsPage from './pages/AdminSettingsPage';
 import AdminNotificationsPage from './pages/AdminNotificationsPage';
@@ -50,6 +52,8 @@ export default function App() {
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/about" element={<CustomerRoute><AboutPage /></CustomerRoute>} />
+          <Route path="/artists" element={<CustomerRoute><ArtistsPage /></CustomerRoute>} />
+          <Route path="/schedule" element={<CustomerRoute><SchedulePage /></CustomerRoute>} />
 
           {/* Customer Application Flow */}
           <Route path="/explore" element={<CustomerRoute><ExploreEventPage /></CustomerRoute>} />

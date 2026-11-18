@@ -192,6 +192,11 @@ export default function AdminSidebar() {
               <p className="text-xs font-bold text-gray-900 dark:text-white truncate">
                 {currentUser ? currentUser.fullName : 'Admin'}
               </p>
+              {currentUser?.email && (
+                <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">
+                  {currentUser.email}
+                </p>
+              )}
               <span className="inline-block text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded bg-oxblood text-white mt-0.5">
                 {currentUser?.role || 'ADMIN'}
               </span>
