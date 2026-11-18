@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, Image, TouchableOpacity, Dimensions, ActivityIndicator, Modal, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Marker, PROVIDER_GOOGLE } from '../../src/components/SafeMapView';
 import { Colors, Shadows } from '../../src/constants/theme';
 import GoldButton from '../../src/components/GoldButton';
 import api from '../../src/api/axios';

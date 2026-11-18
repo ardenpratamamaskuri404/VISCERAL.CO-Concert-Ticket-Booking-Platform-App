@@ -4,7 +4,7 @@ import api from '../api/axios';
 import { useStore } from '../context/StoreContext';
 import Navbar from '../components/Navbar';
 import { Mail, Lock, ArrowRight, ShieldCheck, User, Sparkles } from 'lucide-react';
-import logoPng from '../assets/logo.png';
+import logoSvg from '../assets/logo.svg';
 
 export default function LoginPage() {
   const { loginUser } = useStore();
@@ -58,10 +58,10 @@ export default function LoginPage() {
 
           {/* Logo & Title */}
           <div className="text-center mb-6">
-            <div className="w-14 h-14 rounded-2xl bg-obsidian border border-gold/40 flex items-center justify-center p-2.5 mx-auto mb-3 shadow-gold-glow">
-              <img src={logoPng} alt="VISCERAL.CO" className="w-full h-full object-contain" />
+            <div className="w-16 h-16 rounded-full bg-obsidian border border-gold/40 flex items-center justify-center overflow-hidden mx-auto mb-3 shadow-gold-glow">
+              <img src={logoSvg} alt="VISCERAL.CO" className="w-full h-full object-cover scale-105" />
             </div>
-            <h2 className="text-2xl font-extrabold tracking-tight">Selamat Datang Kembali</h2>
+            <h2 className="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white">Selamat Datang Kembali</h2>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               Masuk ke akun VISCERAL.CO milikmu
             </p>

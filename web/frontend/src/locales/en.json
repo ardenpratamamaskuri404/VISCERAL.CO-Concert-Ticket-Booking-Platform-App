@@ -2,6 +2,8 @@
   "nav": {
     "home": "Home",
     "explore": "Explore Concerts",
+    "artists": "Artists",
+    "schedule": "Schedule",
     "about": "About",
     "myTickets": "My Tickets",
     "adminDashboard": "Admin Dashboard",

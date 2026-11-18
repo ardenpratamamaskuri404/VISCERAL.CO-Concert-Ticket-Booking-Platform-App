@@ -6,10 +6,8 @@ interface VisceralLogoProps {
 }
 
 export default function VisceralLogo({ size = 100 }: VisceralLogoProps) {
-  const scale = size / 680;
-
   return (
-    <Svg width={size} height={size * (390 / 680)} viewBox="0 0 680 390">
+    <Svg width={size} height={size} viewBox="189 44 302 302">
       <Defs>
         <LinearGradient id="goldGrad" x1="0%" y1="0%" x2="0%" y2="100%">
           <Stop offset="0%" stopColor="#F0CE7A" />

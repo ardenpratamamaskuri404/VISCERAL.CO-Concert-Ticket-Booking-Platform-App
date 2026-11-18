@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { motion } from 'framer-motion';
 import { ChevronDown, ChevronRight, Ticket, Shield, Zap, QrCode, Headphones, CreditCard, ArrowRight } from 'lucide-react';
-import logoPng from '../assets/logo.png';
+import logoSvg from '../assets/logo.svg';
 
 const faqs = [
   {
@@ -20,11 +20,11 @@ const faqs = [
   },
   {
     q: 'Metode pembayaran apa saja yang tersedia?',
-    a: 'Kami mendukung Doku Virtual Account (BCA, BRI, Mandiri, BNI), QRIS untuk semua e-wallet, serta opsi transfer manual. Semua transaksi diproses melalui Doku Payment Gateway yang tersertifikasi PCI DSS.'
+    a: 'Kami mendukung Virtual Account Bank resmi (BCA, BRI, Mandiri, BNI), QRIS untuk seluruh dompet digital, E-Wallet (ShopeePay, OVO, DANA), serta Kartu Kredit melalui DOKU Payment Gateway yang tersertifikasi internasional (PCI DSS Level 1).'
   },
   {
     q: 'Bagaimana jika saya lupa password?',
-    a: 'Anda bisa menggunakan fitur "Lupa Password" yang akan mengirimkan kode OTP 6 digit ke nomor WhatsApp Anda melalui Fonnte API. Masukkan kode OTP tersebut untuk membuat password baru.'
+    a: 'Gunakan fitur "Lupa Password" pada halaman Masuk. Sistem keamanan VISCERAL.CO akan mengirimkan kode verifikasi OTP 6-digit ke alamat email resmi yang terdaftar di akun Anda untuk mengatur ulang kata sandi dengan aman dan cepat.'
   },
   {
     q: 'Bisakah saya melakukan refund tiket?',
@@ -82,8 +82,8 @@ export default function AboutPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
         >
-          <div className="w-16 h-16 rounded-3xl bg-obsidian border border-gold/40 flex items-center justify-center p-3 mx-auto mb-6 shadow-gold-glow">
-            <img src={logoPng} alt="VISCERAL.CO" className="w-full h-full object-contain" />
+          <div className="w-16 h-16 rounded-full bg-obsidian border border-gold/40 flex items-center justify-center overflow-hidden mx-auto mb-6 shadow-gold-glow">
+            <img src={logoSvg} alt="VISCERAL.CO" className="w-full h-full object-cover scale-105" />
           </div>
           <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-4">
             Tentang <span className="gold-gradient-text">VISCERAL.CO</span>
@@ -144,9 +144,9 @@ export default function AboutPage() {
 
       {/* Syarat & Ketentuan Ringkas */}
       <section className="py-16 px-4 md:px-8 max-w-4xl mx-auto">
-        <div className="bg-obsidian rounded-3xl p-8 md:p-12 border border-gold/20 shadow-obsidian-glow">
-          <h2 className="text-2xl font-extrabold text-white mb-6">Syarat & Ketentuan Ringkas</h2>
-          <ul className="space-y-4 text-sm text-gray-300 leading-relaxed">
+        <div className="bg-white dark:bg-obsidian rounded-3xl p-8 md:p-12 border border-gray-200 dark:border-gold/20 shadow-obsidian-glow transition-colors">
+          <h2 className="text-2xl font-extrabold text-gray-900 dark:text-white mb-6">Syarat & Ketentuan Ringkas</h2>
+          <ul className="space-y-4 text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
             <li className="flex gap-3"><span className="text-gold font-bold">1.</span> Pembelian tiket bersifat final dan tidak dapat dibatalkan kecuali melalui fitur Request Refund sesuai kebijakan event.</li>
             <li className="flex gap-3"><span className="text-gold font-bold">2.</span> Setiap akun hanya boleh membeli maksimal 4 tiket per event untuk menjaga keadilan distribusi.</li>
             <li className="flex gap-3"><span className="text-gold font-bold">3.</span> QR Code tiket bersifat unik dan hanya bisa di-scan 1 kali. Jangan membagikan screenshot tiket Anda.</li>
@@ -183,7 +183,7 @@ export default function AboutPage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-obsidian text-brand-lightText py-8 border-t border-obsidian-border">
+      <footer className="bg-gray-100 dark:bg-obsidian text-gray-600 dark:text-brand-lightText py-8 border-t border-gray-200 dark:border-obsidian-border transition-colors">
         <div className="max-w-7xl mx-auto px-4 md:px-8 flex flex-col sm:flex-row justify-between items-center text-sm text-gray-500 font-medium">
           <p>© 2026 VISCERAL.CO — Hak Cipta Dilindungi Undang-Undang.</p>
         </div>

@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import api from '../api/axios';
 import Navbar from '../components/Navbar';
 import { Lock, ArrowRight, CheckCircle2 } from 'lucide-react';
+import logoSvg from '../assets/logo.svg';
 
 export default function ResetPasswordPage() {
   const navigate = useNavigate();
@@ -55,7 +56,11 @@ export default function ResetPasswordPage() {
           
           <div className="pulse-line-oxblood w-full absolute top-0 left-0"></div>
 
-          <h2 className="text-2xl font-extrabold tracking-tight text-center">Reset Password Baru</h2>
+          <div className="w-16 h-16 rounded-full bg-obsidian border border-gold/40 flex items-center justify-center overflow-hidden mx-auto mb-4 shadow-gold-glow">
+            <img src={logoSvg} alt="VISCERAL.CO" className="w-full h-full object-cover scale-105" />
+          </div>
+
+          <h2 className="text-2xl font-extrabold tracking-tight text-center text-gray-900 dark:text-white">Reset Password Baru</h2>
           <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-1 mb-6">
             Masukkan kata sandi baru untuk akun VISCERAL.CO milikmu.
           </p>
@@ -82,7 +87,7 @@ export default function ResetPasswordPage() {
                     type="text"
                     value={otp}
                     onChange={(e) => setOtp(e.target.value)}
-                    placeholder="Masukkan 6 digit OTP dari WhatsApp"
+                    placeholder="Masukkan 6 digit kode OTP dari email Anda"
                     className="w-full px-4 py-3 rounded-xl text-xs bg-gray-50 dark:bg-obsidian-surface border border-gray-200 dark:border-obsidian-border text-gray-900 dark:text-white focus:outline-none focus:border-gold"
                     required
                   />

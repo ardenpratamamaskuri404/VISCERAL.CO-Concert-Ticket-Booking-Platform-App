@@ -5,7 +5,7 @@ import Navbar from '../components/Navbar';
 import { QRCodeSVG } from 'qrcode.react';
 import { MapPin, Calendar, Clock, ShieldCheck, Ticket, ArrowLeft, Download } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import logoPng from '../assets/logo.png';
+import logoSvg from '../assets/logo.svg';
 
 export default function TicketDetailPage() {
   const { ticketId } = useParams();
@@ -66,8 +66,8 @@ export default function TicketDetailPage() {
           {/* Top Header Ticket Bar */}
           <div className="p-6 border-b border-obsidian-border bg-obsidian-card flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-obsidian border border-gold/40 flex items-center justify-center p-1.5 shadow-gold-glow">
-                <img src={logoPng} alt="VISCERAL.CO" className="w-full h-full object-contain" />
+              <div className="w-10 h-10 rounded-full bg-obsidian border border-gold/40 flex items-center justify-center overflow-hidden shadow-gold-glow">
+                <img src={logoSvg} alt="VISCERAL.CO" className="w-full h-full object-cover scale-105" />
               </div>
               <div>
                 <span className="font-extrabold text-sm tracking-wider text-white">

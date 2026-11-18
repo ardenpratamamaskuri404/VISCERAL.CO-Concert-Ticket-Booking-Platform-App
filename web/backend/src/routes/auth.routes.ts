@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { prisma } from '../config/db';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { sendOtpEmail } from '../services/email.service';
 
 const authRoutes = new Hono<{ Variables: { user: any } }>();
 const JWT_SECRET = process.env.JWT_SECRET || 'visceral_secret_key';
@@ -94,7 +95,7 @@ authRoutes.post('/forgot-password', async (c) => {
     const { email, phoneNumber } = await c.req.json();
 
     if (!email && !phoneNumber) {
-      return c.json({ error: 'Masukkan email atau nomor handphone Anda' }, 400);
+      return c.json({ error: 'Masukkan alamat email atau nomor handphone Anda' }, 400);
     }
 
     const user = await prisma.user.findFirst({
@@ -107,11 +108,7 @@ authRoutes.post('/forgot-password', async (c) => {
     });
 
     if (!user) {
-      return c.json({ error: 'Pengguna tidak ditemukan' }, 404);
-    }
-
-    if (!user.phoneNumber) {
-      return c.json({ error: 'Akun ini tidak memiliki nomor handphone terdaftar' }, 400);
+      return c.json({ error: 'Pengguna dengan data tersebut tidak ditemukan' }, 404);
     }
 
     // Generate 6 digit OTP
@@ -127,17 +124,19 @@ authRoutes.post('/forgot-password', async (c) => {
       }
     });
 
-    // Skip Fonnte (Mock Mode for 2-person project)
-    console.log(`[MOCK OTP] OTP for ${user.email}: ${otp}`);
+    // Kirim email OTP resmi via Mailpit (SMTP Laragon)
+    const emailSent = await sendOtpEmail(user.email, otp, user.fullName || 'Pengguna');
+
+    console.log(`[VISCERAL OTP] Kode verifikasi untuk ${user.email}: ${otp} (Email sent: ${emailSent})`);
 
     return c.json({ 
-      message: 'OTP berhasil dibuat (Mock Mode)', 
-      isMock: true,
-      mockOtp: otp // Returning OTP for easy testing since Fonnte is removed
+      success: true,
+      message: 'Kode verifikasi OTP telah dikirimkan ke email Anda.',
+      email: user.email
     });
   } catch (error: any) {
     console.error('Forgot Password Error:', error);
-    return c.json({ error: 'Terjadi kesalahan pada server' }, 500);
+    return c.json({ error: 'Terjadi kesalahan pada server saat memproses permintaan OTP' }, 500);
   }
 });
 

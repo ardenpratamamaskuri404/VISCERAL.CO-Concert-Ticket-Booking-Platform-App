@@ -17,7 +17,7 @@ export default function ScannerScreen() {
   const [loading, setLoading] = useState(false);
   const [scanResult, setScanResult] = useState<{ success: boolean; message: string; ticket?: any } | null>(null);
   
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     return () => {

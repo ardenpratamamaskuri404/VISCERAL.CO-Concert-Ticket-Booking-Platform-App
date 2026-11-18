@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useStore } from '../context/StoreContext';
 import AdminSidebar from '../components/AdminSidebar';
+import AdminTopbar from '../components/AdminTopbar';
 import { ScanLine, CheckCircle2, XCircle, Search, ShieldCheck, Camera, CameraOff } from 'lucide-react';
 import api from '../api/axios';
 import { Scanner } from '@yudiel/react-qr-scanner';
@@ -105,33 +106,35 @@ export default function AdminScannerPage() {
   };
 
   return (
-    <div className="min-h-screen bg-obsidian flex">
+    <div className="min-h-screen bg-brand-bgLight dark:bg-obsidian-dark text-brand-darkText dark:text-brand-lightText flex transition-colors">
       <AdminSidebar />
-      <div className="flex-1 p-8 ml-64 transition-all">
-        <div className="max-w-6xl mx-auto">
-          <div className="mb-8">
-            <h1 className="text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
-              <ScanLine className="w-8 h-8 text-gold" /> Scanner Gate
-            </h1>
-            <p className="text-gray-400 mt-2">
-              Scan barcode tiket penonton untuk melakukan Check-in secara real-time.
-            </p>
-          </div>
+      <div className="flex-1 flex flex-col min-w-0">
+        <AdminTopbar title="Scanner Gate Check-In" />
+        <main className="p-6 md:p-8 flex-1 overflow-y-auto">
+          <div className="max-w-6xl mx-auto">
+            <div className="mb-8">
+              <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight flex items-center gap-3">
+                <ScanLine className="w-8 h-8 text-gold" /> Scanner Gate
+              </h1>
+              <p className="text-gray-600 dark:text-gray-400 mt-2">
+                Scan barcode tiket penonton untuk melakukan Check-in secara real-time.
+              </p>
+            </div>
 
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-8">
-            {/* Kamera QR */}
-            <div className="bg-obsidian-card border border-obsidian-border rounded-3xl overflow-hidden relative shadow-lg h-[500px] flex flex-col">
-              <div className="p-4 bg-obsidian-surface border-b border-obsidian-border flex justify-between items-center z-10">
-                <span className="text-gold font-bold flex items-center gap-2">
-                  <Camera className="w-5 h-5" /> Live Camera
-                </span>
-                <button 
-                  onClick={() => setCameraEnabled(!cameraEnabled)}
-                  className="px-4 py-2 bg-obsidian text-gray-300 rounded-lg text-sm font-bold hover:text-white transition-colors flex items-center gap-2"
-                >
-                  {cameraEnabled ? <><CameraOff className="w-4 h-4"/> Pause Kamera</> : <><Camera className="w-4 h-4"/> Mulai Scanner</>}
-                </button>
-              </div>
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-8">
+              {/* Kamera QR */}
+              <div className="bg-white dark:bg-obsidian-card border border-gray-200 dark:border-obsidian-border rounded-3xl overflow-hidden relative shadow-lg h-[500px] flex flex-col">
+                <div className="p-4 bg-gray-50 dark:bg-obsidian-surface border-b border-gray-200 dark:border-obsidian-border flex justify-between items-center z-10">
+                  <span className="text-gold font-bold flex items-center gap-2">
+                    <Camera className="w-5 h-5" /> Live Camera
+                  </span>
+                  <button 
+                    onClick={() => setCameraEnabled(!cameraEnabled)}
+                    className="px-4 py-2 bg-gray-200 dark:bg-obsidian text-gray-700 dark:text-gray-300 rounded-lg text-sm font-bold hover:text-gray-900 dark:hover:text-white transition-colors flex items-center gap-2"
+                  >
+                    {cameraEnabled ? <><CameraOff className="w-4 h-4"/> Pause Kamera</> : <><Camera className="w-4 h-4"/> Mulai Scanner</>}
+                  </button>
+                </div>
               <div className="flex-1 relative bg-black">
                 {cameraEnabled ? (
                   <Scanner 
@@ -175,7 +178,7 @@ export default function AdminScannerPage() {
             {/* Input & Result */}
             <div className="flex flex-col gap-6">
               {/* Scanner Input Box */}
-              <div className="bg-obsidian rounded-3xl p-6 shadow-obsidian-glow border border-gold/20 relative overflow-hidden">
+              <div className="bg-white dark:bg-obsidian rounded-3xl p-6 shadow-obsidian-glow border border-gray-200 dark:border-gold/20 relative overflow-hidden">
                 <div className="pulse-line-oxblood w-full absolute top-0 left-0"></div>
                 
                 <form onSubmit={handleManualScan} className="relative z-10">
@@ -193,7 +196,7 @@ export default function AdminScannerPage() {
                         value={ticketCode}
                         onChange={(e) => setTicketCode(e.target.value)}
                         placeholder="Ketik kode tiket..."
-                        className="w-full bg-obsidian-card border-2 border-obsidian-border rounded-xl py-4 pl-12 pr-4 text-white placeholder-gray-500 focus:outline-none focus:border-gold transition-colors text-lg font-mono tracking-wider"
+                        className="w-full bg-gray-50 dark:bg-obsidian-card border-2 border-gray-200 dark:border-obsidian-border rounded-xl py-4 pl-12 pr-4 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-gold transition-colors text-lg font-mono tracking-wider"
                         disabled={loading}
                         autoComplete="off"
                       />
@@ -201,7 +204,7 @@ export default function AdminScannerPage() {
                     <button
                       type="submit"
                       disabled={loading || !ticketCode.trim()}
-                      className="bg-gold text-obsidian px-8 py-4 rounded-xl font-bold hover:bg-white transition-colors disabled:opacity-50 flex items-center justify-center min-w-[120px]"
+                      className="gold-gradient-btn text-obsidian px-8 py-4 rounded-xl font-bold transition-colors disabled:opacity-50 flex items-center justify-center min-w-[120px] shadow-gold-glow"
                     >
                       {loading ? '...' : 'Scan Manual'}
                     </button>
@@ -213,66 +216,66 @@ export default function AdminScannerPage() {
               {scanResult && (
                 <div className={`rounded-3xl p-8 border-2 transition-all flex-1 flex flex-col justify-center ${
                   scanResult.success 
-                    ? 'bg-green-900/20 border-green-500 shadow-[0_0_40px_rgba(34,197,94,0.15)]' 
-                    : 'bg-red-900/20 border-red-500 shadow-[0_0_40px_rgba(239,68,68,0.15)]'
+                    ? 'bg-emerald-50 dark:bg-green-900/20 border-emerald-500 shadow-[0_0_40px_rgba(34,197,94,0.15)]' 
+                    : 'bg-red-50 dark:bg-red-900/20 border-red-500 shadow-[0_0_40px_rgba(239,68,68,0.15)]'
                 }`}>
                   <div className="flex items-start gap-4 mb-6">
                     {scanResult.success ? (
-                      <CheckCircle2 className="w-10 h-10 text-green-400 shrink-0" />
+                      <CheckCircle2 className="w-10 h-10 text-emerald-500 dark:text-green-400 shrink-0" />
                     ) : (
-                      <XCircle className="w-10 h-10 text-red-400 shrink-0" />
+                      <XCircle className="w-10 h-10 text-red-500 dark:text-red-400 shrink-0" />
                     )}
                     <div>
                       <h3 className={`text-2xl font-extrabold tracking-tight ${
-                        scanResult.success ? 'text-green-400' : 'text-red-400'
+                        scanResult.success ? 'text-emerald-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                       }`}>
                         {scanResult.success ? 'TIKET VALID' : 'TIKET INVALID'}
                       </h3>
-                      <p className="text-gray-300 font-medium text-lg mt-1">
+                      <p className="text-gray-700 dark:text-gray-300 font-medium text-lg mt-1">
                         {scanResult.message}
                       </p>
                     </div>
                   </div>
 
                   {scanResult.success && scanResult.ticket && (
-                    <div className="bg-obsidian-card rounded-2xl p-6 border border-obsidian-border shadow-lg space-y-4">
-                      <div className="flex justify-between items-start pb-4 border-b border-obsidian-border/50">
+                    <div className="bg-white dark:bg-obsidian-card rounded-2xl p-6 border border-gray-200 dark:border-obsidian-border shadow-lg space-y-4">
+                      <div className="flex justify-between items-start pb-4 border-b border-gray-200 dark:border-obsidian-border/50">
                         <div>
-                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Nama Penonton</span>
-                          <span className="font-extrabold text-white text-2xl">{scanResult.ticket.order?.customerName || 'Unknown'}</span>
+                          <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">Nama Penonton</span>
+                          <span className="font-extrabold text-gray-900 dark:text-white text-2xl">{scanResult.ticket.order?.customerName || 'Unknown'}</span>
                         </div>
                         <ShieldCheck className="w-10 h-10 text-gold" />
                       </div>
                       
                       <div className="grid grid-cols-2 gap-y-6 gap-x-4">
                         <div>
-                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Kategori</span>
+                          <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">Kategori</span>
                           <span className="font-bold text-gold text-xl">{scanResult.ticket.category?.name || scanResult.ticket.seat?.category?.name || 'General'}</span>
                         </div>
                         <div>
-                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Nomor Kursi</span>
-                          <span className="font-extrabold text-white text-xl bg-white/10 px-3 py-1 rounded inline-block">{scanResult.ticket.seat?.seatNumber || '-'}</span>
+                          <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">Nomor Kursi</span>
+                          <span className="font-extrabold text-gray-900 dark:text-white text-xl bg-gray-100 dark:bg-white/10 px-3 py-1 rounded inline-block">{scanResult.ticket.seat?.seatNumber || '-'}</span>
                         </div>
                         
                         {scanResult.ticket.event && (
                           <>
                             <div className="col-span-2">
-                              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Acara & Tanggal</span>
-                              <span className="font-medium text-white text-md">
+                              <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">Acara & Tanggal</span>
+                              <span className="font-medium text-gray-900 dark:text-white text-md">
                                 {scanResult.ticket.event.title} • {new Date(scanResult.ticket.event.eventDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
                               </span>
                             </div>
                             <div>
-                              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Open Gate</span>
-                              <span className="font-medium text-gray-300 text-sm">
+                              <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">Open Gate</span>
+                              <span className="font-medium text-gray-600 dark:text-gray-300 text-sm">
                                 {new Date(new Date(scanResult.ticket.event.eventDate).getTime() - 60*60*1000).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
                               </span>
                             </div>
                           </>
                         )}
                         <div className={scanResult.ticket.event ? "" : "col-span-2"}>
-                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Waktu Check-in</span>
-                          <span className="font-medium text-gray-300 text-sm">{new Date().toLocaleTimeString('id-ID')}</span>
+                          <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">Waktu Check-in</span>
+                          <span className="font-medium text-gray-600 dark:text-gray-300 text-sm">{new Date().toLocaleTimeString('id-ID')}</span>
                         </div>
                       </div>
                     </div>
@@ -282,7 +285,8 @@ export default function AdminScannerPage() {
             </div>
           </div>
 
-        </div>
+          </div>
+        </main>
       </div>
     </div>
   );

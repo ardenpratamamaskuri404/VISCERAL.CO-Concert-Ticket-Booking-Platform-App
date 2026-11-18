@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from '../context/StoreContext';
 import Navbar from '../components/Navbar';
-import { MessageSquare, ArrowRight, CheckCircle2, RotateCw } from 'lucide-react';
-import logoPng from '../assets/logo.png';
+import { ArrowRight, CheckCircle2, RotateCw } from 'lucide-react';
+import logoSvg from '../assets/logo.svg';
 
 export default function OtpPage() {
   const { state } = useLocation();
@@ -55,7 +55,7 @@ export default function OtpPage() {
 
     setSuccess(true);
     setTimeout(() => {
-      loginUser(state?.email || 'budi@gmail.com', 'password123', 'CUSTOMER');
+      loginUser(state?.email || 'namagmail@gmail.com', 'password123', 'CUSTOMER');
       navigate('/explore');
     }, 1200);
   };
@@ -75,13 +75,13 @@ export default function OtpPage() {
           
           <div className="pulse-line-oxblood w-full absolute top-0 left-0"></div>
 
-          <div className="w-14 h-14 rounded-2xl bg-obsidian border border-gold/40 flex items-center justify-center p-3 mx-auto mb-4 shadow-gold-glow">
-            <MessageSquare className="w-7 h-7 text-gold" />
+          <div className="w-16 h-16 rounded-full bg-obsidian border border-gold/40 flex items-center justify-center overflow-hidden mx-auto mb-4 shadow-gold-glow">
+            <img src={logoSvg} alt="VISCERAL.CO" className="w-full h-full object-cover scale-105" />
           </div>
 
-          <h2 className="text-2xl font-extrabold tracking-tight">Verifikasi OTP WhatsApp</h2>
+          <h2 className="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white">Verifikasi Kode OTP</h2>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 mb-6">
-            Kode 6-digit dikirim via WhatsApp Fonnte ke nomor <span className="font-bold text-gray-900 dark:text-white">{maskedPhone}</span>
+            Masukkan 6-digit kode verifikasi keamanan yang telah dikirimkan ke email akun Anda.
           </p>
 
           {success ? (
@@ -89,7 +89,7 @@ export default function OtpPage() {
               <div className="w-16 h-16 bg-green-500/10 text-green-500 rounded-full flex items-center justify-center mx-auto mb-3">
                 <CheckCircle2 className="w-10 h-10" />
               </div>
-              <h3 className="text-lg font-bold text-green-500">Nomor Berhasil Diverifikasi!</h3>
+              <h3 className="text-lg font-bold text-green-500">Akun Berhasil Diverifikasi!</h3>
               <p className="text-xs text-gray-400 mt-1">Mengarahkan ke halaman Jelajah Konser...</p>
             </div>
           ) : (

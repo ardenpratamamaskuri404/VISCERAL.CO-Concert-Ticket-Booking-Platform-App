@@ -62,20 +62,32 @@ export default function RegisterScreen() {
   };
 
   const renderPasswordStrength = () => {
+    if (password.length === 0) return null;
     const strength = getPasswordStrength();
+    const strengthColor =
+      strength <= 1 ? '#EF4444' : strength <= 2 ? '#F59E0B' : '#10B981';
+    const strengthLabel =
+      strength <= 1 ? 'Lemah' : strength <= 2 ? 'Sedang' : 'Kuat & Aman';
+
     return (
-      <View style={{ flexDirection: 'row', gap: 4, marginTop: 8 }}>
-        {[1, 2, 3, 4].map((level) => (
-          <View
-            key={level}
-            style={{
-              flex: 1,
-              height: 4,
-              borderRadius: 2,
-              backgroundColor: strength >= level ? Colors.gold : Colors.darkBorder,
-            }}
-          />
-        ))}
+      <View style={{ marginTop: 8 }}>
+        <View style={{ flexDirection: 'row', gap: 4 }}>
+          {[1, 2, 3, 4].map((level) => (
+            <View
+              key={level}
+              style={{
+                flex: 1,
+                height: 4,
+                borderRadius: 2,
+                backgroundColor: strength >= level ? strengthColor : Colors.darkBorder,
+              }}
+            />
+          ))}
+        </View>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
+          <Text style={{ color: Colors.textMuted, fontSize: 10 }}>Keamanan Password:</Text>
+          <Text style={{ color: strengthColor, fontSize: 10, fontWeight: '700' }}>{strengthLabel}</Text>
+        </View>
       </View>
     );
   };
@@ -116,7 +128,7 @@ export default function RegisterScreen() {
                 borderColor: Colors.darkBorder,
                 fontSize: 16
               }}
-              placeholder="Sesuai KTP"
+              placeholder="Nama sesuai identitas resmi"
               placeholderTextColor={Colors.textMuted}
               value={fullName}
               onChangeText={setFullName}

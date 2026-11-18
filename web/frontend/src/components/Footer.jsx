@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
-import logoPng from '../assets/logo.png';
+import logoSvg from '../assets/logo.svg';
 
 export default function Footer() {
   return (
@@ -9,8 +9,8 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-4 md:px-8 grid grid-cols-1 md:grid-cols-4 gap-12 pb-12 border-b border-obsidian-border">
         <div className="md:col-span-2">
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 rounded-full bg-obsidian-surface border border-gold/40 flex items-center justify-center p-2 shadow-gold-glow">
-              <img src={logoPng} alt="VISCERAL.CO" className="w-full h-full object-contain" />
+            <div className="w-12 h-12 rounded-full bg-obsidian-surface border border-gold/40 flex items-center justify-center overflow-hidden shadow-gold-glow">
+              <img src={logoSvg} alt="VISCERAL.CO" className="w-full h-full object-cover scale-105" />
             </div>
             <span className="font-extrabold text-2xl text-white tracking-tight">VISCERAL<span className="text-gold">.CO</span></span>
           </div>
@@ -38,19 +38,19 @@ export default function Footer() {
           <h4 className="text-sm font-bold uppercase tracking-wider text-gold mb-6">Navigasi Utama</h4>
           <ul className="space-y-3 text-sm text-gray-400 font-medium">
             <li><Link to="/explore" className="hover:text-gold transition-colors inline-flex items-center gap-2"><ArrowRight className="w-3 h-3"/> Jelajah Konser</Link></li>
+            <li><Link to="/artists" className="hover:text-gold transition-colors inline-flex items-center gap-2"><ArrowRight className="w-3 h-3"/> Lineup Artis</Link></li>
+            <li><Link to="/schedule" className="hover:text-gold transition-colors inline-flex items-center gap-2"><ArrowRight className="w-3 h-3"/> Jadwal & Kalender Konser</Link></li>
             <li><Link to="/my-tickets" className="hover:text-gold transition-colors inline-flex items-center gap-2"><ArrowRight className="w-3 h-3"/> Tiket Saya</Link></li>
-            <li><Link to="/login" className="hover:text-gold transition-colors inline-flex items-center gap-2"><ArrowRight className="w-3 h-3"/> Login User</Link></li>
-            <li><Link to="/register" className="hover:text-gold transition-colors inline-flex items-center gap-2"><ArrowRight className="w-3 h-3"/> Daftar Akun</Link></li>
           </ul>
         </div>
 
         <div>
-          <h4 className="text-sm font-bold uppercase tracking-wider text-gold mb-6">Bantuan & Legal</h4>
+          <h4 className="text-sm font-bold uppercase tracking-wider text-gold mb-6">Informasi & Layanan</h4>
           <ul className="space-y-3 text-sm text-gray-400 font-medium">
-            <li><Link to="/terms" className="hover:text-gold transition-colors">Syarat & Ketentuan</Link></li>
-            <li><Link to="/privacy" className="hover:text-gold transition-colors">Kebijakan Privasi</Link></li>
-            <li><Link to="/guide" className="hover:text-gold transition-colors">Panduan Verifikasi Doku</Link></li>
-            <li><Link to="/contact" className="hover:text-gold transition-colors">Hubungi Support Tim</Link></li>
+            <li><Link to="/about" className="hover:text-gold transition-colors">Tentang VISCERAL.CO & FAQ</Link></li>
+            <li><Link to="/about" className="hover:text-gold transition-colors">Syarat & Ketentuan</Link></li>
+            <li><Link to="/login" className="hover:text-gold transition-colors">Masuk Akun</Link></li>
+            <li><Link to="/register" className="hover:text-gold transition-colors">Daftar Akun Baru</Link></li>
           </ul>
         </div>
       </div>

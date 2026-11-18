@@ -13,17 +13,17 @@ const GalleryHeroSection = forwardRef((props, ref) => {
   ];
 
   return (
-    <section className="py-20 bg-obsidian text-white overflow-hidden" ref={ref}>
+    <section className="py-20 bg-gray-100/80 dark:bg-obsidian text-brand-darkText dark:text-white overflow-hidden transition-colors" ref={ref}>
       <div className="max-w-7xl mx-auto px-4 md:px-8 mb-10">
         <h2 className="text-3xl md:text-4xl font-extrabold gold-gradient-text">Momen Magis Konser</h2>
-        <p className="text-gray-400 mt-2">Atmosfer yang tak tergantikan dari setiap panggung.</p>
+        <p className="text-gray-600 dark:text-gray-400 mt-2">Atmosfer yang tak tergantikan dari setiap panggung.</p>
       </div>
       
       {/* Infinite Auto-Scrolling Marquee */}
       <div className="relative w-full flex overflow-hidden">
-        {/* Gradient shadow untuk memberikan efek fade di pinggiran (opsional, tapi membuat mewah) */}
-        <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-obsidian to-transparent z-10 pointer-events-none"></div>
-        <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-obsidian to-transparent z-10 pointer-events-none"></div>
+        {/* Gradient shadow untuk memberikan efek fade di pinggiran */}
+        <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-gray-100 dark:from-obsidian to-transparent z-10 pointer-events-none"></div>
+        <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-gray-100 dark:from-obsidian to-transparent z-10 pointer-events-none"></div>
 
         <motion.div 
           className="flex gap-6 w-max px-4"
