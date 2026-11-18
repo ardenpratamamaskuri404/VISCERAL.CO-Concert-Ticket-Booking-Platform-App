@@ -128,7 +128,7 @@ export default function RegisterScreen() {
                 borderColor: Colors.darkBorder,
                 fontSize: 16
               }}
-              placeholder="Sesuai KTP"
+              placeholder="Nama sesuai identitas resmi"
               placeholderTextColor={Colors.textMuted}
               value={fullName}
               onChangeText={setFullName}

@@ -55,7 +55,7 @@ export default function OtpPage() {
 
     setSuccess(true);
     setTimeout(() => {
-      loginUser(state?.email || 'budi@gmail.com', 'password123', 'CUSTOMER');
+      loginUser(state?.email || 'namagmail@gmail.com', 'password123', 'CUSTOMER');
       navigate('/explore');
     }, 1200);
   };

@@ -111,7 +111,7 @@ export default function RegisterPage() {
                   type="text"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Nama sesuai identitas resmi (KTP)"
+                  placeholder="Nama sesuai identitas resmi"
                   className="w-full pl-10 pr-4 py-2.5 rounded-xl text-xs bg-gray-50 dark:bg-obsidian-surface border border-gray-200 dark:border-obsidian-border text-gray-900 dark:text-white focus:outline-none focus:border-gold transition-colors"
                   required
                 />
