@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { prisma } from '../config/db';
+import { io } from '../index';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { sendOtpEmail } from '../services/email.service';
@@ -34,6 +35,8 @@ authRoutes.post('/register', async (c) => {
     });
 
     const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: '1d' });
+
+    io.emit('users_updated', { action: 'register', userId: user.id });
 
     return c.json({
       message: 'Registrasi berhasil',

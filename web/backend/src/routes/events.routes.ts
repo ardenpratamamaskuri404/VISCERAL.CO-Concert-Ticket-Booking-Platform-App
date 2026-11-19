@@ -2,6 +2,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { Hono } from 'hono';
 import { prisma } from '../config/db';
+import { io } from '../index';
 import { authMiddleware } from '../middlewares/auth.middleware';
 
 const eventsRoutes = new Hono<{ Variables: { user: any } }>();
@@ -147,13 +148,32 @@ eventsRoutes.post('/', authMiddleware, async (c) => {
       return c.json({ error: 'Invalid categories format' }, 400);
     }
     const bannerFile = body['bannerFile'] as File;
+    let parsedArtists: Array<{ artistId: string; isHeadliner?: boolean }> = [];
+    if (body['artistIds']) {
+      try {
+        const rawArtists = typeof body['artistIds'] === 'string'
+          ? JSON.parse(body['artistIds'] as string)
+          : body['artistIds'];
+        if (Array.isArray(rawArtists)) {
+          parsedArtists = rawArtists
+            .map((item: any, idx: number) =>
+              typeof item === 'string'
+                ? { artistId: item, isHeadliner: idx === 0 }
+                : { artistId: item.artistId, isHeadliner: Boolean(item.isHeadliner) }
+            )
+            .filter((item) => Boolean(item.artistId));
+        }
+      } catch (e) {
+        return c.json({ error: 'Invalid artistIds format' }, 400);
+      }
+    }
 
     if (!title || !venueName || !eventDate || !categories || !categories.length) {
       return c.json({ error: 'Title, venueName, eventDate, and categories are required' }, 400);
     }
 
     let bannerUrl = null;
-    if (bannerFile) {
+    if (bannerFile && bannerFile.name) {
       const ext = path.extname(bannerFile.name) || '.jpg';
       const filename = `evt-${Date.now()}${ext}`;
       const arrayBuffer = await bannerFile.arrayBuffer();
@@ -177,6 +197,14 @@ eventsRoutes.post('/', authMiddleware, async (c) => {
         salesClosed: false,
         isSeated: isSeated,
         createdById: user.id,
+        ...(parsedArtists.length > 0 && {
+          artists: {
+            create: parsedArtists.map((a) => ({
+              artistId: a.artistId,
+              isHeadliner: Boolean(a.isHeadliner),
+            })),
+          },
+        }),
         ticketCategories: {
           create: categories.map((cat: any, idx: number) => ({
             id: `tc-${newEventId}-${idx + 1}`,
@@ -192,7 +220,10 @@ eventsRoutes.post('/', authMiddleware, async (c) => {
         }
       },
       include: {
-        ticketCategories: true
+        ticketCategories: true,
+        artists: {
+          include: { artist: true }
+        }
       }
     });
 
@@ -203,14 +234,28 @@ eventsRoutes.post('/', authMiddleware, async (c) => {
           seatsData.push({
             id: `seat-${cat.id}-${i}`,
             categoryId: cat.id,
-            seatNumber: `S${i}`
+            seatNumber: `S-${i}`
           });
         }
         await prisma.seat.createMany({ data: seatsData });
       }
     }
 
-    return c.json({ success: true, message: 'Event berhasil ditambahkan', data: newEvent }, 201);
+    const mappedEvent = await processEventCategories(newEvent);
+
+    await prisma.auditLog.create({
+      data: {
+        userId: user.id,
+        action: 'CREATE_EVENT',
+        entityId: newEvent.id,
+        metadata: { title: newEvent.title, venueName: newEvent.venueName }
+      }
+    }).catch(() => {});
+
+    io.emit('events_updated', { action: 'create', eventId: newEvent.id });
+    io.emit('audit_logs_updated');
+
+    return c.json({ success: true, message: 'Event berhasil ditambahkan', data: mappedEvent }, 201);
   } catch (error) {
     console.error('Error creating event:', error);
     return c.json({ error: 'Internal Server Error' }, 500);
@@ -225,6 +270,7 @@ eventsRoutes.put('/:id', authMiddleware, async (c) => {
       return c.json({ error: 'Unauthorized. Admin role required.' }, 403);
     }
     const id = c.req.param('id');
+    if (!id) return c.json({ error: 'Invalid event ID' }, 400);
     const body = await c.req.parseBody();
     
     const title = body['title'] as string;
@@ -232,6 +278,26 @@ eventsRoutes.put('/:id', authMiddleware, async (c) => {
     const description = body['description'] as string;
     const eventDateStr = body['eventDate'] as string;
     const bannerFile = body['bannerFile'] as File;
+
+    let parsedArtists: Array<{ artistId: string; isHeadliner?: boolean }> | null = null;
+    if (body['artistIds'] !== undefined) {
+      try {
+        const rawArtists = typeof body['artistIds'] === 'string'
+          ? JSON.parse(body['artistIds'] as string)
+          : body['artistIds'];
+        if (Array.isArray(rawArtists)) {
+          parsedArtists = rawArtists
+            .map((item: any, idx: number) =>
+              typeof item === 'string'
+                ? { artistId: item, isHeadliner: idx === 0 }
+                : { artistId: item.artistId, isHeadliner: Boolean(item.isHeadliner) }
+            )
+            .filter((item) => Boolean(item.artistId));
+        }
+      } catch (e) {
+        return c.json({ error: 'Invalid artistIds format' }, 400);
+      }
+    }
 
     let bannerUrl = undefined;
     if (bannerFile && bannerFile.name) {
@@ -244,6 +310,20 @@ eventsRoutes.put('/:id', authMiddleware, async (c) => {
       bannerUrl = filename;
     }
 
+    if (parsedArtists !== null) {
+      await prisma.eventArtist.deleteMany({ where: { eventId: id } });
+      if (parsedArtists.length > 0) {
+        await prisma.eventArtist.createMany({
+          data: parsedArtists.map((a) => ({
+            eventId: id,
+            artistId: a.artistId,
+            isHeadliner: Boolean(a.isHeadliner),
+          })),
+          skipDuplicates: true,
+        });
+      }
+    }
+
     const updatedEvent = await prisma.event.update({
       where: { id },
       data: {
@@ -252,12 +332,131 @@ eventsRoutes.put('/:id', authMiddleware, async (c) => {
         ...(description && { description }),
         ...(eventDateStr && { eventDate: new Date(eventDateStr) }),
         ...(bannerUrl && { bannerUrl })
+      },
+      include: {
+        ticketCategories: true,
+        artists: {
+          include: { artist: true }
+        }
       }
     });
 
-    return c.json({ success: true, message: 'Event berhasil diperbarui', data: updatedEvent }, 200);
+    const mappedEvent = await processEventCategories(updatedEvent);
+
+    await prisma.auditLog.create({
+      data: {
+        userId: user.id,
+        action: 'UPDATE_EVENT',
+        entityId: id,
+        metadata: { title: updatedEvent.title }
+      }
+    }).catch(() => {});
+
+    io.emit('events_updated', { action: 'update', eventId: id });
+    io.emit('audit_logs_updated');
+
+    return c.json({ success: true, message: 'Event berhasil diperbarui', data: mappedEvent }, 200);
   } catch (error) {
     console.error('Error updating event:', error);
+    return c.json({ error: 'Internal Server Error' }, 500);
+  }
+});
+
+// Toggle Sales Closed (Admin & Superadmin)
+eventsRoutes.patch('/:id/sales-closed', authMiddleware, async (c) => {
+  try {
+    const user = c.get('user');
+    if (user.role !== 'ADMIN' && user.role !== 'SUPERADMIN') {
+      return c.json({ error: 'Unauthorized. Admin role required.' }, 403);
+    }
+
+    const id = c.req.param('id');
+    const existing = await prisma.event.findUnique({ where: { id } });
+    if (!existing) {
+      return c.json({ error: 'Event tidak ditemukan' }, 404);
+    }
+
+    const updated = await prisma.event.update({
+      where: { id },
+      data: { salesClosed: !existing.salesClosed },
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        userId: user.id,
+        action: 'TOGGLE_SALES_CLOSED',
+        entityId: id,
+        metadata: { eventId: id, title: existing.title, salesClosed: updated.salesClosed }
+      }
+    }).catch(() => {});
+
+    io.emit('events_updated', { action: 'toggle_sales', eventId: id, salesClosed: updated.salesClosed });
+    io.emit('audit_logs_updated');
+
+    return c.json({
+      success: true,
+      message: updated.salesClosed ? 'Penjualan event ditutup sementara' : 'Penjualan event dibuka kembali',
+      data: updated
+    });
+  } catch (error) {
+    console.error('Error toggling salesClosed:', error);
+    return c.json({ error: 'Internal Server Error' }, 500);
+  }
+});
+
+// Delete Event (Admin & Superadmin)
+eventsRoutes.delete('/:id', authMiddleware, async (c) => {
+  try {
+    const user = c.get('user');
+    if (user.role !== 'ADMIN' && user.role !== 'SUPERADMIN') {
+      return c.json({ error: 'Unauthorized. Admin role required.' }, 403);
+    }
+
+    const id = c.req.param('id');
+    const existing = await prisma.event.findUnique({
+      where: { id },
+      include: { ticketCategories: true }
+    });
+    if (!existing) {
+      return c.json({ error: 'Event tidak ditemukan' }, 404);
+    }
+
+    const catIds = existing.ticketCategories.map((tc) => tc.id);
+    if (catIds.length > 0) {
+      const soldTickets = await prisma.ticket.count({
+        where: { categoryId: { in: catIds } }
+      });
+      if (soldTickets > 0) {
+        return c.json(
+          { error: 'Event tidak dapat dihapus karena sudah memiliki tiket terjual. Gunakan tombol Tutup Penjualan.' },
+          400
+        );
+      }
+    }
+
+    if (existing.bannerUrl && !existing.bannerUrl.startsWith('http')) {
+      try {
+        await fs.unlink(path.join(process.cwd(), 'public', 'assets', 'events', existing.bannerUrl));
+      } catch (e) {}
+    }
+
+    await prisma.event.delete({ where: { id } });
+
+    await prisma.auditLog.create({
+      data: {
+        userId: user.id,
+        action: 'DELETE_EVENT',
+        entityId: id,
+        metadata: { title: existing.title }
+      }
+    }).catch(() => {});
+
+    io.emit('events_updated', { action: 'delete', eventId: id });
+    io.emit('audit_logs_updated');
+
+    return c.json({ success: true, message: 'Event berhasil dihapus' });
+  } catch (error) {
+    console.error('Error deleting event:', error);
     return c.json({ error: 'Internal Server Error' }, 500);
   }
 });

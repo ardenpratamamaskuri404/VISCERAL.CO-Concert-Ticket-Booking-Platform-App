@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../config/db';
 import { io } from '../index'; // io is exported in index.ts
 import { authMiddleware } from '../middlewares/auth.middleware';
 
@@ -8,7 +8,6 @@ interface AuthContext {
   role: string;
 }
 
-const prisma = new PrismaClient();
 const ticketsRoutes = new Hono<{ Variables: { user: AuthContext } }>();
 
 // Get Ticket Details by ID (For Customer)
@@ -118,8 +117,19 @@ ticketsRoutes.put('/checkin', authMiddleware, async (c) => {
       event: updatedTicket.category?.event
     };
 
-    // Emit real-time notification to admin dashboard
+    await prisma.auditLog.create({
+      data: {
+        userId: user.id,
+        action: 'CHECKIN_TICKET',
+        entityId: updatedTicket.id,
+        metadata: { ticketCode: updatedTicket.ticketCode }
+      }
+    }).catch(() => {});
+
+    // Emit real-time notification to admin dashboard and customer apps
     io.emit('ticket_scanned', formattedTicket);
+    io.emit('orders_updated', { action: 'checkin', orderId: updatedTicket.orderId });
+    io.emit('audit_logs_updated');
 
     return c.json({
       success: true,

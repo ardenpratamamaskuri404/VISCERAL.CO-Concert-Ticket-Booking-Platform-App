@@ -79,6 +79,151 @@ ordersRoutes.get('/', async (c) => {
   }
 });
 
+// GET all refund requests (Admin & Superadmin)
+ordersRoutes.get('/refunds', authMiddleware, async (c) => {
+  try {
+    const user = c.get('user');
+    if (user.role !== 'ADMIN' && user.role !== 'SUPERADMIN') {
+      return c.json({ error: 'Akses ditolak. Hanya Admin/Superadmin.' }, 403);
+    }
+
+    const refunds = await prisma.refund.findMany({
+      include: {
+        order: {
+          include: {
+            customer: { select: { id: true, fullName: true, email: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const formatted = refunds.map((r) => ({
+      id: r.id,
+      orderId: r.orderId,
+      orderNumber: r.order?.orderNumber || '-',
+      customerName: r.order?.customer?.fullName || 'Unknown',
+      customerEmail: r.order?.customer?.email || '-',
+      amount: Number(r.order?.totalAmount || 0),
+      reason: r.reason,
+      status: r.status,
+      processedBy: r.processedBy,
+      createdAt: r.createdAt,
+    }));
+
+    return c.json({ success: true, data: formatted });
+  } catch (error: any) {
+    console.error('Get Refunds Error:', error);
+    return c.json({ error: 'Gagal memuat daftar refund' }, 500);
+  }
+});
+
+// Approve Refund (Admin & Superadmin)
+ordersRoutes.put('/refunds/:refundId/approve', authMiddleware, async (c) => {
+  try {
+    const user = c.get('user');
+    if (user.role !== 'ADMIN' && user.role !== 'SUPERADMIN') {
+      return c.json({ error: 'Akses ditolak.' }, 403);
+    }
+
+    const refundId = c.req.param('refundId');
+    const refund = await prisma.refund.findUnique({
+      where: { id: refundId },
+      include: { order: { include: { tickets: true } } },
+    });
+
+    if (!refund) return c.json({ error: 'Permintaan refund tidak ditemukan' }, 404);
+    if (refund.status !== 'REQUESTED') {
+      return c.json({ error: 'Permintaan refund sudah diproses sebelumnya' }, 400);
+    }
+
+    await prisma.refund.update({
+      where: { id: refundId },
+      data: { status: 'APPROVED', processedBy: user.id },
+    });
+
+    await prisma.order.update({
+      where: { id: refund.orderId },
+      data: { status: 'CANCELLED' },
+    });
+
+    for (const ticket of refund.order.tickets) {
+      await prisma.ticket.update({
+        where: { id: ticket.id },
+        data: { status: 'CANCELLED' },
+      });
+      if (ticket.seatId) {
+        await prisma.seat.update({
+          where: { id: ticket.seatId },
+          data: { status: 'AVAILABLE', lockedUntil: null, lockedByUserId: null },
+        });
+      }
+    }
+
+    await prisma.auditLog.create({
+      data: {
+        userId: user.id,
+        action: 'APPROVE_REFUND',
+        entityId: refundId,
+        metadata: { orderId: refund.orderId, orderNumber: refund.order.orderNumber },
+      },
+    }).catch(() => {});
+
+    io.emit('refunds_updated', { action: 'approve', refundId });
+    io.emit('orders_updated', { action: 'refund_approved', orderId: refund.orderId });
+    io.emit('events_updated', { action: 'seat_released' });
+    io.emit('audit_logs_updated');
+
+    return c.json({ success: true, message: 'Refund disetujui dan kursi dikembalikan ke katalog' });
+  } catch (error: any) {
+    console.error('Approve Refund Error:', error);
+    return c.json({ error: 'Gagal menyetujui refund' }, 500);
+  }
+});
+
+// Reject Refund (Admin & Superadmin)
+ordersRoutes.put('/refunds/:refundId/reject', authMiddleware, async (c) => {
+  try {
+    const user = c.get('user');
+    if (user.role !== 'ADMIN' && user.role !== 'SUPERADMIN') {
+      return c.json({ error: 'Akses ditolak.' }, 403);
+    }
+
+    const refundId = c.req.param('refundId');
+    const refund = await prisma.refund.findUnique({
+      where: { id: refundId },
+      include: { order: true },
+    });
+
+    if (!refund) return c.json({ error: 'Permintaan refund tidak ditemukan' }, 404);
+    if (refund.status !== 'REQUESTED') {
+      return c.json({ error: 'Permintaan refund sudah diproses sebelumnya' }, 400);
+    }
+
+    await prisma.refund.update({
+      where: { id: refundId },
+      data: { status: 'REJECTED', processedBy: user.id },
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        userId: user.id,
+        action: 'REJECT_REFUND',
+        entityId: refundId,
+        metadata: { orderId: refund.orderId, orderNumber: refund.order.orderNumber },
+      },
+    }).catch(() => {});
+
+    io.emit('refunds_updated', { action: 'reject', refundId });
+    io.emit('audit_logs_updated');
+
+    return c.json({ success: true, message: 'Permintaan refund ditolak' });
+  } catch (error: any) {
+    console.error('Reject Refund Error:', error);
+    return c.json({ error: 'Gagal menolak refund' }, 500);
+  }
+});
+
 // Get Order by ID
 ordersRoutes.get('/:id', async (c) => {
   try {
@@ -194,6 +339,23 @@ ordersRoutes.post('/checkout', authMiddleware, async (c) => {
       }
     }
 
+    await createNotification(
+      'Pesanan Baru',
+      `Pesanan ${order.orderNumber} dari ${customerName || 'Customer'} senilai Rp ${Number(totalAmount).toLocaleString('id-ID')}`,
+      'ORDER',
+      ['ADMIN', 'SUPERADMIN']
+    ).catch(() => {});
+
+    io.emit('new_order', {
+      ...order,
+      customerName: customerName || 'Customer',
+      customerEmail: customerEmail || '',
+      totalAmount: Number(order.totalAmount),
+    });
+    io.emit('orders_updated', { action: 'create', orderId: order.id });
+    io.emit('events_updated', { action: 'seat_locked', eventId });
+    io.emit('new_notification');
+
     return c.json({
       success: true,
       message: 'Berhasil membuat pesanan',
@@ -307,6 +469,8 @@ ordersRoutes.post('/doku-webhook', async (c) => {
         }
 
         io.emit('order_paid', order);
+        io.emit('orders_updated', { action: 'doku_paid', orderId: order.id });
+        io.emit('events_updated', { action: 'seat_sold' });
         io.emit('new_notification');
         return c.json({ message: 'OK' }, 200);
       }
@@ -411,7 +575,10 @@ ordersRoutes.put('/:id/approve', async (c) => {
       }
 
       io.emit('order_paid', order);
+      io.emit('orders_updated', { action: 'approve', orderId: order.id });
+      io.emit('events_updated', { action: 'seat_sold' });
       io.emit('new_notification');
+      io.emit('audit_logs_updated');
       return c.json({ success: true, message: 'Pesanan berhasil disetujui (PAID)' });
     }
 
@@ -422,7 +589,64 @@ ordersRoutes.put('/:id/approve', async (c) => {
   }
 });
 
-// Mock Upload Proof Endpoint
+// Reject / Cancel Order (Oleh Admin / Superadmin)
+ordersRoutes.put('/:id/reject', authMiddleware, async (c) => {
+  try {
+    const user = c.get('user');
+    if (user.role !== 'ADMIN' && user.role !== 'SUPERADMIN') {
+      return c.json({ success: false, message: 'Akses ditolak.' }, 403);
+    }
+
+    const orderId = c.req.param('id');
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: { tickets: true }
+    });
+
+    if (!order) return c.json({ success: false, message: 'Pesanan tidak ditemukan' }, 404);
+    if (order.status !== 'PENDING') {
+      return c.json({ success: false, message: 'Hanya pesanan PENDING yang dapat ditolak' }, 400);
+    }
+
+    await prisma.order.update({
+      where: { id: order.id },
+      data: { status: 'CANCELLED' }
+    });
+
+    for (const ticket of order.tickets) {
+      await prisma.ticket.update({
+        where: { id: ticket.id },
+        data: { status: 'CANCELLED' }
+      });
+      if (ticket.seatId) {
+        await prisma.seat.update({
+          where: { id: ticket.seatId },
+          data: { status: 'AVAILABLE', lockedUntil: null, lockedByUserId: null }
+        });
+      }
+    }
+
+    await prisma.auditLog.create({
+      data: {
+        userId: user.id,
+        action: 'REJECT_ORDER',
+        entityId: order.id,
+        metadata: { orderId: order.id, orderNumber: order.orderNumber }
+      }
+    }).catch(() => {});
+
+    io.emit('orders_updated', { action: 'reject', orderId: order.id });
+    io.emit('events_updated', { action: 'seat_released' });
+    io.emit('audit_logs_updated');
+
+    return c.json({ success: true, message: 'Pesanan berhasil ditolak (CANCELLED)' });
+  } catch (error: any) {
+    console.error('Reject order error:', error);
+    return c.json({ success: false, message: error.message }, 500);
+  }
+});
+
+// Upload Proof Endpoint
 ordersRoutes.put('/:id/proof', async (c) => {
   try {
     const orderId = c.req.param('id');
@@ -432,6 +656,8 @@ ordersRoutes.put('/:id/proof', async (c) => {
       where: { id: orderId },
       data: { paymentProof: body.proofUrl }
     });
+
+    io.emit('orders_updated', { action: 'proof_uploaded', orderId });
     
     return c.json({ success: true, message: 'Bukti diunggah' });
   } catch (error: any) {
@@ -473,6 +699,9 @@ ordersRoutes.post('/:id/refund', authMiddleware, async (c) => {
       'REFUND',
       ['ADMIN', 'SUPERADMIN']
     );
+
+    io.emit('refunds_updated', { action: 'create', refundId: refund.id });
+    io.emit('new_notification');
 
     return c.json({ success: true, refund });
   } catch (error: any) {
