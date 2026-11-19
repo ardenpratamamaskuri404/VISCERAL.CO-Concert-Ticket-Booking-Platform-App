@@ -1,22 +1,14 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
-
-// Untuk Android emulator gunakan 10.0.2.2, untuk device fisik gunakan IP lokal
-const getBaseUrl = () => {
-  if (Platform.OS === 'android') {
-    return 'http://10.0.2.2:3005/api'; // Android emulator
-  }
-  return 'http://localhost:3005/api'; // iOS simulator
-};
+import { API_URL } from './config';
 
 const api = axios.create({
-  // UPDATE URL DI BAWAH INI DENGAN URL NGROK YANG BARU (lihat di terminal ngrok)
-  baseURL: 'https://wisdom-detection-uncharted.ngrok-free.dev/api',
+  baseURL: API_URL,
   timeout: 10000,
   headers: {
-    'ngrok-skip-browser-warning': 'true' // Penting agar API tidak di-blokir oleh halaman peringatan ngrok
-  }
+    'ngrok-skip-browser-warning': 'true',
+  },
 });
 
 // Request interceptor — attach JWT token

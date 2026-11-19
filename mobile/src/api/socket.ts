@@ -1,19 +1,17 @@
 import { io, Socket } from 'socket.io-client';
-import { Platform } from 'react-native';
-
-const SOCKET_URL = 'https://wisdom-detection-uncharted.ngrok-free.dev';
-
-const getSocketUrl = () => {
-  return SOCKET_URL;
-};
+import { SERVER_URL } from './config';
 
 let socket: Socket | null = null;
 
 export const getSocket = (): Socket => {
   if (!socket) {
-    socket = io(getSocketUrl(), {
-      transports: ['websocket'],
+    socket = io(SERVER_URL, {
+      transports: ['websocket', 'polling'],
       autoConnect: false,
+      reconnection: true,
+      extraHeaders: {
+        'ngrok-skip-browser-warning': 'true',
+      },
     });
   }
   return socket;

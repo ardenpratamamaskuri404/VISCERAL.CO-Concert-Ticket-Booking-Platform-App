@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Shadows } from '../constants/theme';
 import { Event } from '../types';
 import { Ionicons } from '@expo/vector-icons';
+import { getAssetUrl } from '../api/config';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width * 0.85;
@@ -14,11 +15,7 @@ interface EventCardProps {
   variant?: 'featured' | 'grid';
 }
 
-const getImageUrl = (url?: string) => {
-  if (!url) return null;
-  if (url.startsWith('http')) return url;
-  return `https://wisdom-detection-uncharted.ngrok-free.dev/assets/events/${url}`;
-};
+const getImageUrl = (url?: string) => getAssetUrl(url, 'events');
 
 export default function EventCard({ event, onPress, variant = 'featured' }: EventCardProps) {
   const eventDate = new Date(event.eventDate);

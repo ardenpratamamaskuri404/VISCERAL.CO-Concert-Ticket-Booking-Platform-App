@@ -6,6 +6,8 @@ import MapView, { Marker, PROVIDER_GOOGLE } from '../../src/components/SafeMapVi
 import { Colors, Shadows } from '../../src/constants/theme';
 import GoldButton from '../../src/components/GoldButton';
 import api from '../../src/api/axios';
+import { getAssetUrl } from '../../src/api/config';
+import { getSocket } from '../../src/api/socket';
 import { Event, TicketCategory } from '../../src/types';
 import { Ionicons } from '@expo/vector-icons';
 import dayjs from 'dayjs';
@@ -33,6 +35,16 @@ export default function EventDetailScreen() {
 
   useEffect(() => {
     fetchEventDetails();
+    const socket = getSocket();
+    const handleLiveUpdate = () => {
+      fetchEventDetails();
+    };
+    socket.on('events_updated', handleLiveUpdate);
+    socket.on('artists_updated', handleLiveUpdate);
+    return () => {
+      socket.off('events_updated', handleLiveUpdate);
+      socket.off('artists_updated', handleLiveUpdate);
+    };
   }, [id]);
 
   const fetchEventDetails = async () => {
@@ -48,11 +60,7 @@ export default function EventDetailScreen() {
     }
   };
 
-  const getImageUrl = (url?: string) => {
-    if (!url) return null;
-    if (url.startsWith('http')) return url;
-    return `https://wisdom-detection-uncharted.ngrok-free.dev/assets/events/${url}`;
-  };
+  const getImageUrl = (url?: string) => getAssetUrl(url, 'events');
 
   const handleCheckout = () => {
     if (!selectedCategory || !event) return;
@@ -167,7 +175,7 @@ export default function EventDetailScreen() {
                     <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: Colors.darkSurface, marginBottom: 8, borderWidth: ea.isHeadliner ? 2 : 0, borderColor: Colors.gold }}>
                       {ea.artist.photoUrl ? (
                         <Image 
-                          source={{ uri: `https://wisdom-detection-uncharted.ngrok-free.dev/assets/artists/${ea.artist.photoUrl}` }}
+                          source={{ uri: getAssetUrl(ea.artist.photoUrl, 'artists') || undefined }}
                           style={{ width: '100%', height: '100%', borderRadius: 40 }}
                         />
                       ) : (

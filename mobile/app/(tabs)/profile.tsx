@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { Colors } from '../../src/constants/theme';
 import { useAuth } from '../../src/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
+import { getAssetUrl } from '../../src/api/config';
 import { LinearGradient } from 'expo-linear-gradient';
 
 export default function ProfileScreen() {
@@ -42,7 +43,7 @@ export default function ProfileScreen() {
             <Image 
               source={
                 currentUser?.avatarUrl 
-                  ? { uri: `https://wisdom-detection-uncharted.ngrok-free.dev/assets/users/${currentUser.avatarUrl}` }
+                  ? { uri: getAssetUrl(currentUser.avatarUrl, 'users') || undefined }
                   : require('../../assets/icon.png')
               }
               style={{ width: 110, height: 110, borderRadius: 55, backgroundColor: Colors.darkSurface, borderWidth: 2, borderColor: Colors.gold }}

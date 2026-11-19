@@ -1,24 +1,27 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../api/axios';
 import { connectSocket, disconnectSocket } from '../api/socket';
 import { useAuth } from './AuthContext';
-import { Event, Order, Notification, ChatMessage } from '../types';
+import { Event, Artist, Order, Notification, ChatMessage } from '../types';
 
 interface AppContextType {
   // Data
   events: Event[];
+  artists: Artist[];
   orders: Order[];
   notifications: Notification[];
   chatMessages: ChatMessage[];
-  
+
   // State
   darkMode: boolean;
   isRefreshing: boolean;
   unreadNotifCount: number;
+  socketConnected: boolean;
 
   // Actions
   fetchEvents: () => Promise<void>;
+  fetchArtists: () => Promise<void>;
   fetchOrders: () => Promise<void>;
   fetchNotifications: () => Promise<void>;
   fetchChatMessages: () => Promise<void>;
@@ -33,12 +36,19 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const { currentUser, isLoggedIn } = useAuth();
 
   const [events, setEvents] = useState<Event[]>([]);
+  const [artists, setArtists] = useState<Artist[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [darkMode, setDarkMode] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [unreadNotifCount, setUnreadNotifCount] = useState(0);
+  const [socketConnected, setSocketConnected] = useState(false);
+
+  const currentUserRef = useRef(currentUser);
+  useEffect(() => {
+    currentUserRef.current = currentUser;
+  }, [currentUser]);
 
   // Restore dark mode preference
   useEffect(() => {
@@ -46,45 +56,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       if (val !== null) setDarkMode(JSON.parse(val));
     });
   }, []);
-
-  // Connect socket when logged in
-  useEffect(() => {
-    if (isLoggedIn) {
-      const socket = connectSocket();
-
-      socket.on('order_paid', (data: any) => {
-        // Refresh orders when payment confirmed
-        fetchOrders();
-      });
-
-      socket.on('ticket_scanned', (ticket: any) => {
-        // Refresh orders when a ticket is checked in so the list shows "TERPAKAI"
-        fetchOrders();
-      });
-
-      socket.on('new_chat_message', (msg: ChatMessage) => {
-        if (
-          msg.receiverId === currentUser?.id ||
-          msg.senderId === currentUser?.id
-        ) {
-          setChatMessages((prev) => [...prev, msg]);
-        }
-      });
-
-      socket.on('new_notification', () => {
-        fetchNotifications();
-      });
-
-      // Initial data fetch
-      fetchEvents();
-      fetchOrders();
-      fetchNotifications();
-
-      return () => {
-        disconnectSocket();
-      };
-    }
-  }, [isLoggedIn, currentUser?.id]);
 
   const fetchEvents = useCallback(async () => {
     try {
@@ -97,19 +68,36 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  const fetchOrders = useCallback(async () => {
-    if (!currentUser) return;
+  const fetchArtists = useCallback(async () => {
     try {
-      const res = await api.get(`/orders?customerId=${currentUser.id}`);
+      const res = await api.get('/artists');
+      if (res.data?.data) {
+        setArtists(res.data.data);
+      }
+    } catch (e) {
+      console.error('Failed to fetch artists:', e);
+    }
+  }, []);
+
+  const fetchOrders = useCallback(async () => {
+    const user = currentUserRef.current;
+    if (!user) return;
+    try {
+      const url =
+        user.role === 'ADMIN' || user.role === 'SUPERADMIN'
+          ? '/orders'
+          : `/orders?customerId=${user.id}`;
+      const res = await api.get(url);
       if (res.data?.data) {
         setOrders(res.data.data);
       }
     } catch (e) {
       console.error('Failed to fetch orders:', e);
     }
-  }, [currentUser?.id]);
+  }, []);
 
   const fetchNotifications = useCallback(async () => {
+    if (!currentUserRef.current) return;
     try {
       const res = await api.get('/notifications');
       if (res.data?.success) {
@@ -123,6 +111,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const fetchChatMessages = useCallback(async () => {
+    if (!currentUserRef.current) return;
     try {
       const res = await api.get('/chat');
       if (res.data?.success) {
@@ -132,6 +121,76 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       console.error('Failed to fetch chat messages:', e);
     }
   }, []);
+
+  // Always fetch public catalog (events & artists) and stay connected to live Socket.io updates
+  useEffect(() => {
+    fetchEvents();
+    fetchArtists();
+
+    const socket = connectSocket();
+
+    const onConnect = () => setSocketConnected(true);
+    const onDisconnect = () => setSocketConnected(false);
+    const onEventsUpdated = () => fetchEvents();
+    const onArtistsUpdated = () => fetchArtists();
+    const onOrdersUpdated = () => fetchOrders();
+    const onOrderPaid = () => {
+      fetchOrders();
+      fetchEvents();
+    };
+    const onTicketScanned = () => fetchOrders();
+    const onRefundsUpdated = () => {
+      fetchOrders();
+      fetchNotifications();
+    };
+    const onNewNotification = () => fetchNotifications();
+    const onNewChatMessage = (msg: ChatMessage) => {
+      const user = currentUserRef.current;
+      if (!user) return;
+      if (msg.receiverId === user.id || msg.senderId === user.id) {
+        setChatMessages((prev) =>
+          prev.some((existing) => existing.id === msg.id) ? prev : [...prev, msg]
+        );
+      }
+    };
+
+    socket.on('connect', onConnect);
+    socket.on('disconnect', onDisconnect);
+    socket.on('events_updated', onEventsUpdated);
+    socket.on('artists_updated', onArtistsUpdated);
+    socket.on('orders_updated', onOrdersUpdated);
+    socket.on('order_paid', onOrderPaid);
+    socket.on('ticket_scanned', onTicketScanned);
+    socket.on('refunds_updated', onRefundsUpdated);
+    socket.on('new_notification', onNewNotification);
+    socket.on('new_chat_message', onNewChatMessage);
+
+    return () => {
+      socket.off('connect', onConnect);
+      socket.off('disconnect', onDisconnect);
+      socket.off('events_updated', onEventsUpdated);
+      socket.off('artists_updated', onArtistsUpdated);
+      socket.off('orders_updated', onOrdersUpdated);
+      socket.off('order_paid', onOrderPaid);
+      socket.off('ticket_scanned', onTicketScanned);
+      socket.off('refunds_updated', onRefundsUpdated);
+      socket.off('new_notification', onNewNotification);
+      socket.off('new_chat_message', onNewChatMessage);
+      disconnectSocket();
+    };
+  }, [fetchEvents, fetchArtists, fetchOrders, fetchNotifications]);
+
+  // Fetch user-scoped data when logged in
+  useEffect(() => {
+    if (isLoggedIn && currentUser) {
+      fetchOrders();
+      fetchNotifications();
+    } else {
+      setOrders([]);
+      setNotifications([]);
+      setUnreadNotifCount(0);
+    }
+  }, [isLoggedIn, currentUser?.id, fetchOrders, fetchNotifications]);
 
   const toggleDarkMode = () => {
     setDarkMode((prev) => {
@@ -145,13 +204,16 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     <AppContext.Provider
       value={{
         events,
+        artists,
         orders,
         notifications,
         chatMessages,
         darkMode,
         isRefreshing,
         unreadNotifCount,
+        socketConnected,
         fetchEvents,
+        fetchArtists,
         fetchOrders,
         fetchNotifications,
         fetchChatMessages,
@@ -166,7 +228,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 };
 
 export const useApp = () => {
-  const context = useContext(AppContext);
-  if (!context) throw new Error('useApp must be used within AppProvider');
-  return context;
+  const ctx = useContext(AppContext);
+  if (!ctx) throw new Error('useApp must be used within AppProvider');
+  return ctx;
 };
