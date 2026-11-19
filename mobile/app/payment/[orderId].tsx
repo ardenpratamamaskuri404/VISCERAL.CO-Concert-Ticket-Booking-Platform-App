@@ -30,13 +30,21 @@ export default function PaymentScreen() {
   useEffect(() => {
     fetchOrder();
 
-    // Listen to real-time payment status updates
+    // Listen to real-time payment status updates (pakai named handler agar tidak menghapus listener global AppContext)
     const socket = getSocket();
-    socket.on('order_paid', (data: { orderId?: string, id?: string }) => {
+    const onOrderPaid = (data: { orderId?: string; id?: string }) => {
       if (data.orderId === orderId || data.id === orderId) {
         handleSuccess();
       }
-    });
+    };
+    const onOrdersUpdated = (data: { orderId?: string }) => {
+      if (!data?.orderId || data.orderId === orderId) {
+        fetchOrder();
+      }
+    };
+
+    socket.on('order_paid', onOrderPaid);
+    socket.on('orders_updated', onOrdersUpdated);
 
     // Set up polling as a fallback in case socket disconnects while app is in background
     const pollInterval = setInterval(() => {
@@ -44,7 +52,8 @@ export default function PaymentScreen() {
     }, 3000);
 
     return () => {
-      socket.off('order_paid');
+      socket.off('order_paid', onOrderPaid);
+      socket.off('orders_updated', onOrdersUpdated);
       clearInterval(pollInterval);
     };
   }, [orderId]);
@@ -60,7 +69,7 @@ export default function PaymentScreen() {
         }
       }
     } catch (e) {
-      console.error('Fetch order failed:', e);
+      console.warn('Fetch order failed:', e);
     } finally {
       setLoading(false);
     }

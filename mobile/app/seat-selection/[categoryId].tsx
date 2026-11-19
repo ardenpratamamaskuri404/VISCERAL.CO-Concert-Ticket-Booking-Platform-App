@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Dimensions, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Colors } from '../../src/constants/theme';
 import GoldButton from '../../src/components/GoldButton';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../src/api/axios';
+import { getSocket } from '../../src/api/socket';
 
 const { width } = Dimensions.get('window');
 
@@ -18,11 +19,7 @@ export default function SeatSelectionScreen() {
   const [categoryName, setCategoryName] = useState<string>('');
   const [price, setPrice] = useState<number>(0);
 
-  useEffect(() => {
-    fetchSeats();
-  }, []);
-
-  const fetchSeats = async () => {
+  const fetchSeats = useCallback(async () => {
     try {
       // The API events/:id already includes the category and seats
       const res = await api.get(`/events/${eventId}`);
@@ -31,16 +28,36 @@ export default function SeatSelectionScreen() {
         if (cat) {
           setCategoryName(cat.name);
           setPrice(Number(cat.price));
-          // Seats are already returned from events.routes.ts
-          setSeats(cat.seats || []);
+          const latestSeats = cat.seats || [];
+          setSeats(latestSeats);
+          // Lepas pilihan lokal jika kursi baru saja dikunci/dibeli user lain
+          setSelectedSeats((prev) =>
+            prev.filter((seatNum) =>
+              latestSeats.some((s: any) => s.seatNumber === seatNum && s.status === 'AVAILABLE')
+            )
+          );
         }
       }
     } catch (e) {
-      console.error('Fetch seats failed:', e);
+      console.warn('Fetch seats failed:', e);
     } finally {
       setLoading(false);
     }
-  };
+  }, [eventId, categoryId]);
+
+  useEffect(() => {
+    fetchSeats();
+
+    const socket = getSocket();
+    const onEventsUpdated = () => {
+      fetchSeats();
+    };
+    socket.on('events_updated', onEventsUpdated);
+
+    return () => {
+      socket.off('events_updated', onEventsUpdated);
+    };
+  }, [fetchSeats]);
 
   const handleSeatToggle = (seatNumber: string, status: string) => {
     if (status !== 'AVAILABLE') return;
