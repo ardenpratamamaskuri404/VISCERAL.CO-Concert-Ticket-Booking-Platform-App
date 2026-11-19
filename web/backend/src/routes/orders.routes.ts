@@ -6,6 +6,7 @@ import { authMiddleware } from '../middlewares/auth.middleware';
 import { calculateOrderCheckout } from '../services/order.service';
 import { createDokuPayment } from '../services/doku.service';
 import { createNotification } from './notifications.routes';
+import { sendOrderSuccessEmail } from '../services/email.service';
 
 const ordersRoutes = new Hono<{ Variables: { user: any } }>();
 
@@ -594,6 +595,7 @@ ordersRoutes.post('/doku-webhook', async (c) => {
       io.emit('orders_updated', { action: 'doku_paid', orderId: order.id });
       io.emit('events_updated', { action: 'seat_sold' });
       io.emit('new_notification');
+      sendOrderSuccessEmail(order.id).catch(() => {});
       return c.json({ message: 'OK' }, 200);
     }
 
@@ -640,6 +642,7 @@ ordersRoutes.post('/:id/simulate-pay', async (c) => {
       // Reload order with updated status
       const updatedOrder = await prisma.order.findUnique({ where: { id: orderId } });
       io.emit('order_paid', updatedOrder);
+      sendOrderSuccessEmail(order.id).catch(() => {});
       
       return c.json({ success: true, message: 'Simulasi Lunas Berhasil' });
     }
@@ -705,6 +708,7 @@ ordersRoutes.put('/:id/approve', authMiddleware, async (c) => {
       io.emit('events_updated', { action: 'seat_sold' });
       io.emit('new_notification');
       io.emit('audit_logs_updated');
+      sendOrderSuccessEmail(order.id).catch(() => {});
       return c.json({ success: true, message: 'Pesanan berhasil disetujui (PAID)' });
     }
 
