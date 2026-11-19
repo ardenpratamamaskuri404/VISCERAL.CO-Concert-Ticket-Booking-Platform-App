@@ -19,6 +19,7 @@ import usersRoutes from './routes/users.routes';
 import ticketsRoutes from './routes/tickets.routes';
 import notificationsRoutes from './routes/notifications.routes';
 import chatRoutes from './routes/chat.routes';
+import { releaseExpiredLocks } from './services/order.service';
 
 const app = new Hono();
 
@@ -124,8 +125,23 @@ io.on('connection', (socket) => {
   });
 });
 
+// Auto-release kursi LOCKED & order PENDING yang lewat 5 menit setiap 30 detik secara real-time
+const expiredSweepTimer = setInterval(async () => {
+  try {
+    const res = await releaseExpiredLocks();
+    if (res.expiredOrders > 0 || res.releasedSeats > 0) {
+      io.emit('orders_updated', { action: 'expired_sweep', count: res.expiredOrders });
+      io.emit('events_updated', { action: 'seat_released', count: res.releasedSeats });
+    }
+  } catch (e) {
+    console.error('Expired lock sweep error:', e);
+  }
+}, 30000);
+expiredSweepTimer.unref();
+
 // Graceful shutdown so Windows releases port cleanly on nodemon restart / Ctrl+C
 const shutdown = async () => {
+  clearInterval(expiredSweepTimer);
   io.close();
   server.close(async () => {
     await prisma.$disconnect().catch(() => {});

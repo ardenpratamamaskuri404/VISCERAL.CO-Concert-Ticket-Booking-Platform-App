@@ -308,7 +308,7 @@ ordersRoutes.post('/checkout', authMiddleware, async (c) => {
 
     // Logika perhitungan order dipindah ke service
     const checkoutResult = await calculateOrderCheckout(eventId, tickets);
-    if (checkoutResult.error) {
+    if (checkoutResult.error !== null) {
       return c.json({ success: false, message: checkoutResult.error }, checkoutResult.code as any);
     }
 
@@ -436,51 +436,103 @@ ordersRoutes.post('/doku-webhook', async (c) => {
         include: { tickets: true }
       });
 
-      if (order && order.status === 'PENDING') {
+      if (!order || order.status !== 'PENDING') {
+        return c.json({ message: 'OK' }, 200);
+      }
+
+      const txStatus = String(
+        bodyJson.transaction?.status || bodyJson.payment?.status || 'SUCCESS'
+      ).toUpperCase();
+
+      const isFailedOrExpired = ['FAILED', 'EXPIRED', 'CANCELLED', 'VOID', 'DENY'].includes(txStatus);
+      const isPending = ['PENDING', 'IN_PROGRESS'].includes(txStatus);
+
+      if (isPending) {
+        return c.json({ message: 'OK' }, 200);
+      }
+
+      if (isFailedOrExpired) {
+        const nextStatus = txStatus === 'EXPIRED' ? 'EXPIRED' : 'CANCELLED';
+
         await prisma.order.update({
           where: { id: order.id },
-          data: { 
-            status: 'PAID',
+          data: {
+            status: nextStatus,
             dokuReferenceId: bodyJson.transaction?.doku_transaction_id || requestIdHeader,
-            paymentChannel: bodyJson.transaction?.channel || 'DOKU_CHECKOUT'
-          }
+            paymentChannel: bodyJson.transaction?.channel || order.paymentChannel || 'DOKU_CHECKOUT',
+          },
         });
 
-        for (const ticket of order.tickets) {
-          await prisma.ticket.update({
-            where: { id: ticket.id },
-            data: { status: 'ACTIVE' }
-          });
-          
-          if (ticket.seatId) {
-            await prisma.seat.update({
-              where: { id: ticket.seatId },
-              data: { status: 'SOLD', lockedByUserId: order.customerId }
-            });
-          }
-        }
-
-        // Create notification for all admins
-        const admins = await prisma.user.findMany({
-          where: { role: { in: ['ADMIN', 'SUPERADMIN'] } }
+        await prisma.ticket.updateMany({
+          where: { orderId: order.id },
+          data: { status: 'CANCELLED' },
         });
-        if (admins.length > 0) {
-          await prisma.notification.createMany({
-            data: admins.map(admin => ({
-              userId: admin.id,
-              title: 'Pesanan Lunas',
-              message: `Pesanan ${order.orderNumber} telah dibayar senilai Rp ${Number(order.totalAmount).toLocaleString('id-ID')}`,
-              type: 'ORDER'
-            }))
+
+        const seatIds = order.tickets.map((t) => t.seatId).filter((id): id is string => Boolean(id));
+        if (seatIds.length > 0) {
+          await prisma.seat.updateMany({
+            where: { id: { in: seatIds } },
+            data: { status: 'AVAILABLE', lockedUntil: null, lockedByUserId: null },
           });
         }
 
-        io.emit('order_paid', order);
-        io.emit('orders_updated', { action: 'doku_paid', orderId: order.id });
-        io.emit('events_updated', { action: 'seat_sold' });
+        await createNotification(
+          'Pembayaran Gagal / Kedaluwarsa',
+          `Pesanan ${order.orderNumber} berstatus ${nextStatus} dari DOKU. Kursi telah dilepas kembali.`,
+          'ORDER',
+          ['ADMIN', 'SUPERADMIN']
+        ).catch(() => {});
+
+        io.emit('orders_updated', { action: 'doku_failed', orderId: order.id, status: nextStatus });
+        io.emit('events_updated', { action: 'seat_released' });
         io.emit('new_notification');
         return c.json({ message: 'OK' }, 200);
       }
+
+      // Status SUCCESS / PAID / SETTLEMENT -> Setujui pesanan otomatis & tandai kursi SOLD
+      await prisma.order.update({
+        where: { id: order.id },
+        data: { 
+          status: 'PAID',
+          dokuReferenceId: bodyJson.transaction?.doku_transaction_id || requestIdHeader,
+          paymentChannel: bodyJson.transaction?.channel || 'DOKU_CHECKOUT'
+        }
+      });
+
+      for (const ticket of order.tickets) {
+        await prisma.ticket.update({
+          where: { id: ticket.id },
+          data: { status: 'ACTIVE' }
+        });
+        
+        if (ticket.seatId) {
+          await prisma.seat.update({
+            where: { id: ticket.seatId },
+            data: { status: 'SOLD', lockedByUserId: order.customerId, lockedUntil: null }
+          });
+        }
+      }
+
+      // Create notification for all admins
+      const admins = await prisma.user.findMany({
+        where: { role: { in: ['ADMIN', 'SUPERADMIN'] } }
+      });
+      if (admins.length > 0) {
+        await prisma.notification.createMany({
+          data: admins.map(admin => ({
+            userId: admin.id,
+            title: 'Pesanan Lunas',
+            message: `Pesanan ${order.orderNumber} telah dibayar senilai Rp ${Number(order.totalAmount).toLocaleString('id-ID')}`,
+            type: 'ORDER'
+          }))
+        });
+      }
+
+      io.emit('order_paid', order);
+      io.emit('orders_updated', { action: 'doku_paid', orderId: order.id });
+      io.emit('events_updated', { action: 'seat_sold' });
+      io.emit('new_notification');
+      return c.json({ message: 'OK' }, 200);
     }
 
     return c.json({ message: 'OK' }, 200);
