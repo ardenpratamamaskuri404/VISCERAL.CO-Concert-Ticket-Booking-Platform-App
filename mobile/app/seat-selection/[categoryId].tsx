@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Dimensions, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Colors } from '../../src/constants/theme';
 import GoldButton from '../../src/components/GoldButton';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../src/api/axios';
+import { getSocket } from '../../src/api/socket';
 
 const { width } = Dimensions.get('window');
 
@@ -15,32 +16,62 @@ export default function SeatSelectionScreen() {
   const [loading, setLoading] = useState(true);
   const [seats, setSeats] = useState<any[]>([]);
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
+  const [standingQty, setStandingQty] = useState<number>(1);
+  const [availableQuota, setAvailableQuota] = useState<number>(0);
+  const [isSeatedEvent, setIsSeatedEvent] = useState<boolean>(true);
   const [categoryName, setCategoryName] = useState<string>('');
   const [price, setPrice] = useState<number>(0);
 
-  useEffect(() => {
-    fetchSeats();
-  }, []);
+  const isStandingCat = (name: string) => {
+    const n = name.toLowerCase();
+    return n.includes('standing') || n.includes('festival') || n.includes('general') || n.includes('presale') || n.includes('pass') || n.includes('ga');
+  };
 
-  const fetchSeats = async () => {
+  const requiresSeat = isSeatedEvent && !isStandingCat(categoryName);
+
+  const fetchSeats = useCallback(async () => {
     try {
       // The API events/:id already includes the category and seats
       const res = await api.get(`/events/${eventId}`);
       if (res.data?.data) {
-        const cat = res.data.data.categories.find((c: any) => c.id === categoryId);
+        const eventData = res.data.data;
+        setIsSeatedEvent(Boolean(eventData.isSeated));
+        const cat = eventData.categories.find((c: any) => c.id === categoryId);
         if (cat) {
           setCategoryName(cat.name);
           setPrice(Number(cat.price));
-          // Seats are already returned from events.routes.ts
-          setSeats(cat.seats || []);
+          const latestSeats = cat.seats || [];
+          setSeats(latestSeats);
+          const quota = cat.availableSeats ?? cat.availableQuota ?? (cat.totalSeats - (cat.soldSeats || 0));
+          setAvailableQuota(Math.max(0, Number(quota || 0)));
+          // Lepas pilihan lokal jika kursi baru saja dikunci/dibeli user lain
+          setSelectedSeats((prev) =>
+            prev.filter((seatNum) =>
+              latestSeats.some((s: any) => s.seatNumber === seatNum && s.status === 'AVAILABLE')
+            )
+          );
         }
       }
     } catch (e) {
-      console.error('Fetch seats failed:', e);
+      console.warn('Fetch seats failed:', e);
     } finally {
       setLoading(false);
     }
-  };
+  }, [eventId, categoryId]);
+
+  useEffect(() => {
+    fetchSeats();
+
+    const socket = getSocket();
+    const onEventsUpdated = () => {
+      fetchSeats();
+    };
+    socket.on('events_updated', onEventsUpdated);
+
+    return () => {
+      socket.off('events_updated', onEventsUpdated);
+    };
+  }, [fetchSeats]);
 
   const handleSeatToggle = (seatNumber: string, status: string) => {
     if (status !== 'AVAILABLE') return;
@@ -57,16 +88,28 @@ export default function SeatSelectionScreen() {
   };
 
   const handleProceed = () => {
-    if (selectedSeats.length === 0) return;
-    router.push({
-      pathname: `/checkout/[eventId]`,
-      params: { 
-        eventId, 
-        categoryId, 
-        quantity: selectedSeats.length.toString(),
-        selectedSeats: selectedSeats.join(',') 
-      }
-    });
+    if (requiresSeat) {
+      if (selectedSeats.length === 0) return;
+      router.push({
+        pathname: `/checkout/[eventId]`,
+        params: {
+          eventId,
+          categoryId,
+          quantity: selectedSeats.length.toString(),
+          selectedSeats: selectedSeats.join(',')
+        }
+      });
+    } else {
+      if (standingQty <= 0 || availableQuota <= 0) return;
+      router.push({
+        pathname: `/checkout/[eventId]`,
+        params: {
+          eventId,
+          categoryId,
+          quantity: standingQty.toString(),
+        }
+      });
+    }
   };
 
   if (loading) {
@@ -90,7 +133,9 @@ export default function SeatSelectionScreen() {
           <Ionicons name="arrow-back" size={24} color={Colors.white} />
         </TouchableOpacity>
         <View>
-          <Text style={{ color: Colors.white, fontSize: 18, fontWeight: '800' }}>Pilih Kursi - {categoryName}</Text>
+          <Text style={{ color: Colors.white, fontSize: 18, fontWeight: '800' }}>
+            {requiresSeat ? `Pilih Kursi - ${categoryName}` : `Area Standing - ${categoryName}`}
+          </Text>
           <Text style={{ color: Colors.textMuted, fontSize: 12 }}>{eventTitle}</Text>
         </View>
       </View>
@@ -102,65 +147,119 @@ export default function SeatSelectionScreen() {
           <Text style={{ color: Colors.gold, fontWeight: '900', letterSpacing: 8 }}>PANGGUNG</Text>
         </View>
 
-        {/* Seat Legend */}
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 32, paddingHorizontal: 16 }}>
-          <View style={{ alignItems: 'center', gap: 8 }}>
-            <View style={{ width: 24, height: 24, borderRadius: 8, backgroundColor: Colors.darkSurface, borderWidth: 1, borderColor: Colors.darkBorder }} />
-            <Text style={{ color: Colors.textMuted, fontSize: 12 }}>Tersedia</Text>
-          </View>
-          <View style={{ alignItems: 'center', gap: 8 }}>
-            <View style={{ width: 24, height: 24, borderRadius: 8, backgroundColor: Colors.gold }} />
-            <Text style={{ color: Colors.white, fontSize: 12 }}>Dipilih</Text>
-          </View>
-          <View style={{ alignItems: 'center', gap: 8 }}>
-            <View style={{ width: 24, height: 24, borderRadius: 8, backgroundColor: 'rgba(255, 0, 0, 0.2)', borderWidth: 1, borderColor: Colors.oxblood }} />
-            <Text style={{ color: Colors.textMuted, fontSize: 12 }}>Terjual</Text>
-          </View>
-        </View>
+        {requiresSeat ? (
+          <>
+            {/* Seat Legend */}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 32, paddingHorizontal: 16 }}>
+              <View style={{ alignItems: 'center', gap: 8 }}>
+                <View style={{ width: 24, height: 24, borderRadius: 8, backgroundColor: Colors.darkSurface, borderWidth: 1, borderColor: Colors.darkBorder }} />
+                <Text style={{ color: Colors.textMuted, fontSize: 12 }}>Tersedia</Text>
+              </View>
+              <View style={{ alignItems: 'center', gap: 8 }}>
+                <View style={{ width: 24, height: 24, borderRadius: 8, backgroundColor: Colors.gold }} />
+                <Text style={{ color: Colors.white, fontSize: 12 }}>Dipilih</Text>
+              </View>
+              <View style={{ alignItems: 'center', gap: 8 }}>
+                <View style={{ width: 24, height: 24, borderRadius: 8, backgroundColor: 'rgba(255, 0, 0, 0.2)', borderWidth: 1, borderColor: Colors.oxblood }} />
+                <Text style={{ color: Colors.textMuted, fontSize: 12 }}>Terjual</Text>
+              </View>
+            </View>
 
-        {/* Seat Grid */}
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, justifyContent: 'center' }}>
-          {seats.map((seat) => {
-            const isSelected = selectedSeats.includes(seat.seatNumber);
-            const isAvailable = seat.status === 'AVAILABLE';
+            {/* Seat Grid */}
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, justifyContent: 'center' }}>
+              {seats.map((seat) => {
+                const isSelected = selectedSeats.includes(seat.seatNumber);
+                const isAvailable = seat.status === 'AVAILABLE';
 
-            let bgColor = Colors.darkSurface;
-            let borderColor = Colors.darkBorder;
-            let textColor = Colors.white;
+                let bgColor = Colors.darkSurface;
+                let borderColor = Colors.darkBorder;
+                let textColor = Colors.white;
 
-            if (isSelected) {
-              bgColor = Colors.gold;
-              borderColor = Colors.gold;
-              textColor = Colors.obsidian;
-            } else if (!isAvailable) {
-              bgColor = 'rgba(255,0,0,0.1)';
-              borderColor = 'rgba(255,0,0,0.3)';
-              textColor = 'rgba(255,255,255,0.3)';
-            }
+                if (isSelected) {
+                  bgColor = Colors.gold;
+                  borderColor = Colors.gold;
+                  textColor = Colors.obsidian;
+                } else if (!isAvailable) {
+                  bgColor = 'rgba(255,0,0,0.1)';
+                  borderColor = 'rgba(255,0,0,0.3)';
+                  textColor = 'rgba(255,255,255,0.3)';
+                }
 
-            return (
-              <TouchableOpacity
-                key={seat.id || seat.seatNumber}
-                onPress={() => handleSeatToggle(seat.seatNumber, seat.status)}
-                activeOpacity={isAvailable ? 0.7 : 1}
-                style={{
-                  width: SEAT_SIZE,
-                  height: SEAT_SIZE,
-                  backgroundColor: bgColor,
-                  borderRadius: 12,
-                  borderWidth: 1.5,
-                  borderColor: borderColor,
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <Text style={{ color: textColor, fontWeight: '800', fontSize: 14 }}>
-                  {seat.seatNumber.replace('S-', '')}
+                return (
+                  <TouchableOpacity
+                    key={seat.id || seat.seatNumber}
+                    onPress={() => handleSeatToggle(seat.seatNumber, seat.status)}
+                    activeOpacity={isAvailable ? 0.7 : 1}
+                    style={{
+                      width: SEAT_SIZE,
+                      height: SEAT_SIZE,
+                      backgroundColor: bgColor,
+                      borderRadius: 12,
+                      borderWidth: 1.5,
+                      borderColor: borderColor,
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    <Text style={{ color: textColor, fontWeight: '800', fontSize: 14 }}>
+                      {seat.seatNumber.replace('S-', '')}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </>
+        ) : (
+          <View style={{ gap: 24 }}>
+            {/* Standing Area Box matching Web */}
+            <View style={{
+              backgroundColor: Colors.darkSurface,
+              borderRadius: 20,
+              borderWidth: 1.5,
+              borderColor: Colors.darkBorder,
+              paddingVertical: 40,
+              paddingHorizontal: 24,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <Text style={{ color: Colors.white, fontSize: 20, fontWeight: '900', letterSpacing: 2, marginBottom: 8 }}>
+                STANDING AREA
+              </Text>
+              <Text style={{ color: Colors.textMuted, fontSize: 13, textAlign: 'center', marginBottom: 14 }}>
+                Bebas memilih tempat berdiri di area ini
+              </Text>
+              <View style={{ backgroundColor: 'rgba(200, 155, 60, 0.12)', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20 }}>
+                <Text style={{ color: Colors.gold, fontSize: 12, fontWeight: '800' }}>
+                  Sisa Kuota: {availableQuota} Tiket
                 </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+              </View>
+            </View>
+
+            {/* Quantity Stepper matching Web */}
+            <View style={{ alignItems: 'center', gap: 14 }}>
+              <Text style={{ color: Colors.white, fontSize: 15, fontWeight: '800' }}>
+                Pilih Jumlah Tiket (Maks 5)
+              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.darkSurface, borderRadius: 16, padding: 8, borderWidth: 1, borderColor: Colors.darkBorder, gap: 20 }}>
+                <TouchableOpacity
+                  onPress={() => setStandingQty(q => Math.max(1, q - 1))}
+                  style={{ width: 42, height: 42, borderRadius: 12, backgroundColor: Colors.darkCard, alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <Ionicons name="remove" size={20} color={Colors.white} />
+                </TouchableOpacity>
+                <Text style={{ color: Colors.white, fontSize: 20, fontWeight: '900', minWidth: 28, textAlign: 'center' }}>
+                  {standingQty}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => setStandingQty(q => Math.min(5, availableQuota > 0 ? availableQuota : 5, q + 1))}
+                  style={{ width: 42, height: 42, borderRadius: 12, backgroundColor: Colors.darkCard, alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <Ionicons name="add" size={20} color={Colors.white} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        )}
 
       </ScrollView>
 
@@ -174,17 +273,17 @@ export default function SeatSelectionScreen() {
       }}>
         <View>
           <Text style={{ color: Colors.textMuted, fontSize: 12, marginBottom: 4 }}>
-            {selectedSeats.length} Kursi Dipilih
+            {requiresSeat ? `${selectedSeats.length} Kursi Dipilih` : `${standingQty} Tiket Standing`}
           </Text>
           <Text style={{ color: Colors.white, fontSize: 18, fontWeight: '900' }}>
-            Rp {(price * selectedSeats.length).toLocaleString('id-ID')}
+            Rp {(price * (requiresSeat ? selectedSeats.length : standingQty)).toLocaleString('id-ID')}
           </Text>
         </View>
 
         <GoldButton 
           title="Lanjut Bayar" 
           onPress={handleProceed} 
-          disabled={selectedSeats.length === 0}
+          disabled={requiresSeat ? selectedSeats.length === 0 : (standingQty <= 0 || availableQuota <= 0)}
           style={{ width: 150 }}
         />
       </View>

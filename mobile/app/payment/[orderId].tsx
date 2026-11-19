@@ -4,10 +4,11 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import * as Clipboard from 'expo-clipboard';
-import { Colors } from '../../src/constants/theme';
+import { Colors, getThemeColors } from '../../src/constants/theme';
 import GoldButton from '../../src/components/GoldButton';
 import api from '../../src/api/axios';
 import { getSocket } from '../../src/api/socket';
+import { useApp } from '../../src/context/AppContext';
 import { Order } from '../../src/types';
 import { Ionicons } from '@expo/vector-icons';
 import dayjs from 'dayjs';
@@ -15,6 +16,8 @@ import dayjs from 'dayjs';
 export default function PaymentScreen() {
   const { orderId } = useLocalSearchParams();
   const router = useRouter();
+  const { fetchOrders, darkMode } = useApp();
+  const theme = getThemeColors(darkMode);
 
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
@@ -24,19 +27,28 @@ export default function PaymentScreen() {
   const handleSuccess = () => {
     if (isRedirecting.current) return;
     isRedirecting.current = true;
+    fetchOrders();
     router.replace(`/order-success/${orderId}`);
   };
 
   useEffect(() => {
     fetchOrder();
 
-    // Listen to real-time payment status updates
+    // Listen to real-time payment status updates (pakai named handler agar tidak menghapus listener global AppContext)
     const socket = getSocket();
-    socket.on('order_paid', (data: { orderId?: string, id?: string }) => {
+    const onOrderPaid = (data: { orderId?: string; id?: string }) => {
       if (data.orderId === orderId || data.id === orderId) {
         handleSuccess();
       }
-    });
+    };
+    const onOrdersUpdated = (data: { orderId?: string }) => {
+      if (!data?.orderId || data.orderId === orderId) {
+        fetchOrder();
+      }
+    };
+
+    socket.on('order_paid', onOrderPaid);
+    socket.on('orders_updated', onOrdersUpdated);
 
     // Set up polling as a fallback in case socket disconnects while app is in background
     const pollInterval = setInterval(() => {
@@ -44,7 +56,8 @@ export default function PaymentScreen() {
     }, 3000);
 
     return () => {
-      socket.off('order_paid');
+      socket.off('order_paid', onOrderPaid);
+      socket.off('orders_updated', onOrdersUpdated);
       clearInterval(pollInterval);
     };
   }, [orderId]);
@@ -60,7 +73,7 @@ export default function PaymentScreen() {
         }
       }
     } catch (e) {
-      console.error('Fetch order failed:', e);
+      console.warn('Fetch order failed:', e);
     } finally {
       setLoading(false);
     }
@@ -74,9 +87,9 @@ export default function PaymentScreen() {
         const returnUrl = Linking.createURL(`/payment/${order.id}`);
         const res = await api.post(`/orders/${order.id}/generate-doku`, { returnUrl });
         if (res.data?.dokuUrl) {
-          await WebBrowser.openBrowserAsync(res.data.dokuUrl);
-          // When user closes browser, re-check status
-          fetchOrder();
+          await WebBrowser.openAuthSessionAsync(res.data.dokuUrl, returnUrl);
+          // Segarkan status order & daftar tiket setelah kembali dari halaman DOKU
+          await Promise.all([fetchOrder(), fetchOrders()]);
         } else {
           Alert.alert('Info', 'Link pembayaran tidak tersedia.');
         }

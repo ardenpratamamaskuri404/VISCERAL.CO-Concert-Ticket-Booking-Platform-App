@@ -7,7 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 export default function AdminLoginScreen() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, clearSessionExpiredMessage } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -23,10 +23,26 @@ export default function AdminLoginScreen() {
 
     setLoading(true);
     setError('');
+    clearSessionExpiredMessage();
 
     const res = await login(email, password);
     
     setLoading(false);
+
+    if (res.success && res.requiresOtp) {
+      router.push({
+        pathname: '/(auth)/otp',
+        params: {
+          mode: 'LOGIN',
+          email: res.email || email.trim(),
+          password,
+          target: 'admin',
+          otpExpiresInSeconds: String(res.otpExpiresInSeconds || 300),
+          info: res.message || '',
+        },
+      });
+      return;
+    }
 
     if (res.success) {
       if (res.user?.role === 'ADMIN' || res.user?.role === 'SUPERADMIN') {
@@ -85,7 +101,7 @@ export default function AdminLoginScreen() {
                 borderColor: 'rgba(239, 68, 68, 0.3)',
                 fontSize: 16
               }}
-              placeholder="admin@visceral.co"
+              placeholder="Masukkan email otorisasi"
               placeholderTextColor="rgba(255,255,255,0.3)"
               value={email}
               onChangeText={setEmail}

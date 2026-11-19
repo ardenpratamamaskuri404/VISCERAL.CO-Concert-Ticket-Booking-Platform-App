@@ -7,7 +7,8 @@ import AdminEventsTable from '../components/AdminEventsTable';
 import AdminEventModal from '../components/AdminEventModal';
 
 export default function AdminEventsPage() {
-  const { events, toggleSalesClosed, createEvent, updateEvent } = useStore();
+  const { artists, createEvent, updateEvent, currentUser } = useStore();
+  const isSuperAdmin = currentUser?.role === 'SUPERADMIN';
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -18,11 +19,36 @@ export default function AdminEventsPage() {
   const [venue, setVenue] = useState('');
   const [description, setDescription] = useState('');
   const [eventDate, setEventDate] = useState('');
+  const [isSeated, setIsSeated] = useState(true);
   const [bannerFile, setBannerFile] = useState(null);
+  const [selectedArtistIds, setSelectedArtistIds] = useState([]);
 
   const [categories, setCategories] = useState([
     { name: 'FESTIVAL', price: 500000, totalSeats: 200, earlyBirdPrice: '', earlyBirdStartDate: '', earlyBirdEndDate: '' }
   ]);
+
+  const toggleArtistSelection = (artistId) => {
+    setSelectedArtistIds((prev) =>
+      prev.includes(artistId) ? prev.filter((id) => id !== artistId) : [...prev, artistId]
+    );
+  };
+
+  const resetForm = () => {
+    setTitle('');
+    setVenue('');
+    setDescription('');
+    setEventDate('');
+    setIsSeated(true);
+    setBannerFile(null);
+    setSelectedArtistIds([]);
+    setSelectedEvent(null);
+    setCategories([{ name: 'FESTIVAL', price: 500000, totalSeats: 200, earlyBirdPrice: '', earlyBirdStartDate: '', earlyBirdEndDate: '' }]);
+  };
+
+  const handleOpenCreateModal = () => {
+    resetForm();
+    setModalOpen(true);
+  };
 
   const handleCategoryChange = (index, field, value) => {
     const newCategories = [...categories];
@@ -32,6 +58,11 @@ export default function AdminEventsPage() {
 
   const addCategory = () => {
     setCategories([...categories, { name: '', price: '', totalSeats: '', earlyBirdPrice: '', earlyBirdStartDate: '', earlyBirdEndDate: '' }]);
+  };
+
+  const removeCategory = (index) => {
+    if (categories.length <= 1) return;
+    setCategories(categories.filter((_, idx) => idx !== index));
   };
 
   const handleCreateEvent = async (e) => {
@@ -53,8 +84,9 @@ export default function AdminEventsPage() {
     formData.append('venueName', venue);
     formData.append('description', description || 'Konser spektakuler');
     formData.append('eventDate', eventDate || new Date().toISOString());
-    formData.append('isSeated', 'true');
+    formData.append('isSeated', isSuperAdmin ? String(isSeated) : 'true');
     formData.append('categories', JSON.stringify(formattedCategories));
+    formData.append('artistIds', JSON.stringify(selectedArtistIds));
     
     if (bannerFile) {
       formData.append('bannerFile', bannerFile);
@@ -64,12 +96,7 @@ export default function AdminEventsPage() {
     
     if (res && res.success) {
       setModalOpen(false);
-      setTitle('');
-      setVenue('');
-      setDescription('');
-      setEventDate('');
-      setBannerFile(null);
-      setCategories([{ name: 'FESTIVAL', price: 500000, totalSeats: 200, earlyBirdPrice: '', earlyBirdStartDate: '', earlyBirdEndDate: '' }]);
+      resetForm();
     }
   };
 
@@ -78,7 +105,11 @@ export default function AdminEventsPage() {
     setTitle(ev.title);
     setVenue(ev.venueName);
     setDescription(ev.description || '');
-    setEventDate(ev.eventDate.split('T')[0]); // simplified date
+    const dt = new Date(ev.eventDate);
+    const localIso = new Date(dt.getTime() - dt.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    setEventDate(localIso);
+    setIsSeated(ev.isSeated ?? true);
+    setSelectedArtistIds(ev.artists?.map((ea) => ea.artistId) || []);
     setBannerFile(null);
     setEditModalOpen(true);
   };
@@ -92,6 +123,10 @@ export default function AdminEventsPage() {
     formData.append('venueName', venue);
     formData.append('description', description);
     formData.append('eventDate', eventDate || new Date().toISOString());
+    if (isSuperAdmin) {
+      formData.append('isSeated', String(isSeated));
+    }
+    formData.append('artistIds', JSON.stringify(selectedArtistIds));
     
     if (bannerFile) {
       formData.append('bannerFile', bannerFile);
@@ -101,12 +136,7 @@ export default function AdminEventsPage() {
     
     if (res && res.success) {
       setEditModalOpen(false);
-      setTitle('');
-      setVenue('');
-      setDescription('');
-      setEventDate('');
-      setBannerFile(null);
-      setSelectedEvent(null);
+      resetForm();
     }
   };
 
@@ -129,7 +159,7 @@ export default function AdminEventsPage() {
             </div>
 
             <button
-              onClick={() => setModalOpen(true)}
+              onClick={handleOpenCreateModal}
               className="px-5 py-2.5 rounded-xl gold-gradient-btn text-obsidian text-xs font-extrabold flex items-center gap-2 shadow-gold-glow"
             >
               <Plus className="w-4 h-4" />
@@ -149,11 +179,17 @@ export default function AdminEventsPage() {
         title={title} setTitle={setTitle}
         venue={venue} setVenue={setVenue}
         eventDate={eventDate} setEventDate={setEventDate}
+        isSeated={isSeated} setIsSeated={setIsSeated}
+        canConfigureSeating={isSuperAdmin}
         description={description} setDescription={setDescription}
         bannerFile={bannerFile} setBannerFile={setBannerFile}
         categories={categories} setCategories={setCategories}
+        artistsList={artists}
+        selectedArtistIds={selectedArtistIds}
+        toggleArtistSelection={toggleArtistSelection}
         handleCategoryChange={handleCategoryChange}
         addCategory={addCategory}
+        removeCategory={removeCategory}
         handleSubmit={handleCreateEvent}
       />
 
@@ -164,9 +200,14 @@ export default function AdminEventsPage() {
         title={title} setTitle={setTitle}
         venue={venue} setVenue={setVenue}
         eventDate={eventDate} setEventDate={setEventDate}
+        isSeated={isSeated} setIsSeated={setIsSeated}
+        canConfigureSeating={isSuperAdmin}
         description={description} setDescription={setDescription}
         bannerFile={bannerFile} setBannerFile={setBannerFile}
         categories={categories} setCategories={setCategories}
+        artistsList={artists}
+        selectedArtistIds={selectedArtistIds}
+        toggleArtistSelection={toggleArtistSelection}
         handleSubmit={handleUpdateEvent}
       />
     </div>

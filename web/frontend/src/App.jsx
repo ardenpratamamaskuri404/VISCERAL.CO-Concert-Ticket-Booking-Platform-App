@@ -68,13 +68,13 @@ export default function App() {
 
           {/* Admin & Superadmin Dashboard Flow */}
           <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboardPage /></AdminRoute>} />
-          <Route path="/admin/events" element={<AdminRoute><AdminEventsPage /></AdminRoute>} />
-          <Route path="/admin/artists" element={<AdminRoute><AdminArtistsPage /></AdminRoute>} />
+          <Route path="/admin/events" element={<AdminRoute requireSuperadmin={true}><AdminEventsPage /></AdminRoute>} />
+          <Route path="/admin/artists" element={<AdminRoute requireSuperadmin={true}><AdminArtistsPage /></AdminRoute>} />
           <Route path="/admin/verification" element={<AdminRoute><AdminVerificationPage /></AdminRoute>} />
           <Route path="/admin/scanner" element={<AdminRoute><AdminScannerPage /></AdminRoute>} />
           <Route path="/admin/users" element={<AdminRoute requireSuperadmin={true}><AdminUsersPage /></AdminRoute>} />
           <Route path="/admin/reports" element={
-            <AdminRoute><AdminReportsPage /></AdminRoute>
+            <AdminRoute requireSuperadmin={true}><AdminReportsPage /></AdminRoute>
           } />
           <Route path="/admin/chat" element={
             <AdminRoute><AdminChatPage /></AdminRoute>

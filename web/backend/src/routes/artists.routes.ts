@@ -2,6 +2,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { Hono } from 'hono';
 import { prisma } from '../config/db';
+import { io } from '../index';
 import { authMiddleware } from '../middlewares/auth.middleware';
 
 const artistsRoutes = new Hono<{ Variables: { user: any } }>();
@@ -55,6 +56,9 @@ artistsRoutes.post('/', authMiddleware, async (c) => {
         photoUrl: photoUrl,
       }
     });
+
+    io.emit('artists_updated', { action: 'create', artistId: newArtist.id });
+    io.emit('events_updated', { action: 'artist_sync' });
 
     return c.json({ success: true, message: 'Artis berhasil ditambahkan', data: newArtist }, 201);
   } catch (error) {
@@ -110,6 +114,9 @@ artistsRoutes.put('/:id', authMiddleware, async (c) => {
       }
     });
 
+    io.emit('artists_updated', { action: 'update', artistId });
+    io.emit('events_updated', { action: 'artist_sync' });
+
     return c.json({ success: true, message: 'Artis berhasil diupdate', data: updatedArtist }, 200);
   } catch (error) {
     console.error('Error updating artist:', error);
@@ -141,6 +148,9 @@ artistsRoutes.delete('/:id', authMiddleware, async (c) => {
     }
 
     await prisma.artist.delete({ where: { id: artistId } });
+
+    io.emit('artists_updated', { action: 'delete', artistId });
+    io.emit('events_updated', { action: 'artist_sync' });
 
     return c.json({ success: true, message: 'Artis berhasil dihapus' }, 200);
   } catch (error) {

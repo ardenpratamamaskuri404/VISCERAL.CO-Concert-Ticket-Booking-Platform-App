@@ -40,6 +40,17 @@ export default function SettingsPage() {
 
   if (!currentUser) return null;
 
+  useEffect(() => {
+    if (currentUser) {
+      setProfileData((prev) => ({
+        ...prev,
+        fullName: currentUser.fullName || '',
+        phoneNumber: currentUser.phoneNumber || '',
+        avatarUrl: currentUser.avatarUrl || '',
+      }));
+    }
+  }, [currentUser]);
+
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -48,21 +59,19 @@ export default function SettingsPage() {
 
     const formData = new FormData();
     formData.append('fullName', profileData.fullName);
-    if (profileData.phoneNumber) formData.append('phoneNumber', profileData.phoneNumber);
+    formData.append('phoneNumber', profileData.phoneNumber ?? '');
     if (profileData.avatarFile) {
         formData.append('avatarFile', profileData.avatarFile);
     }
 
     const res = await updateUserProfile(formData);
     if (res.success) {
-      setSuccessMsg('Profil berhasil diperbarui! Memuat ulang...');
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
+      setProfileData((prev) => ({ ...prev, avatarFile: null }));
+      setSuccessMsg('Profil berhasil diperbarui secara real-time!');
     } else {
       setErrorMsg(res.error);
-      setLoading(false);
     }
+    setLoading(false);
   };
 
   const handlePasswordSubmit = async (e) => {

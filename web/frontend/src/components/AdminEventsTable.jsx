@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { Check, Edit3, ShieldAlert, Filter } from 'lucide-react';
+import { Check, Edit3, ShieldAlert, Filter, Trash2 } from 'lucide-react';
 import { getImageUrl } from '../utils/image';
 import { useStore } from '../context/StoreContext';
 
 export default function AdminEventsTable({ handleEditClick }) {
-  const { events, toggleSalesClosed } = useStore();
+  const { events, artists, toggleSalesClosed, deleteEvent } = useStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
 
@@ -12,13 +12,18 @@ export default function AdminEventsTable({ handleEditClick }) {
     const matchesSearch = ev.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           ev.venueName.toLowerCase().includes(searchQuery.toLowerCase());
     
-    // Status mapping: Active = !isSalesClosed, Closed = isSalesClosed
     let matchesStatus = true;
-    if (statusFilter === 'ACTIVE') matchesStatus = !ev.isSalesClosed;
-    if (statusFilter === 'CLOSED') matchesStatus = ev.isSalesClosed;
+    if (statusFilter === 'ACTIVE') matchesStatus = !ev.salesClosed;
+    if (statusFilter === 'CLOSED') matchesStatus = Boolean(ev.salesClosed);
     
     return matchesSearch && matchesStatus;
   });
+
+  const handleDelete = async (ev) => {
+    if (window.confirm(`Yakin ingin menghapus event "${ev.title}"?`)) {
+      await deleteEvent(ev.id);
+    }
+  };
 
   return (
     <div className="bg-white dark:bg-obsidian-card rounded-3xl border border-gray-200 dark:border-obsidian-border overflow-hidden shadow-sm">
@@ -68,9 +73,9 @@ export default function AdminEventsTable({ handleEditClick }) {
                 <td className="py-4 px-6">
                   <div className="flex items-center gap-4">
                     <img
-                      src={getImageUrl(ev.bannerUrl) || 'https://images.unsplash.com/photo-1540039155732-6761b54f2224?w=800&auto=format&fit=crop&q=80'}
+                      src={getImageUrl(ev.bannerUrl, 'events') || 'https://images.unsplash.com/photo-1540039155732-6761b54f2224?w=800&auto=format&fit=crop&q=80'}
                       alt={ev.title}
-                      className="w-16 h-12 rounded-xl object-cover"
+                      className="w-16 h-12 rounded-xl object-cover shrink-0 border border-gray-200 dark:border-obsidian-border"
                     />
                     <div>
                       <p className="font-extrabold text-sm text-gray-900 dark:text-white">
@@ -84,6 +89,22 @@ export default function AdminEventsTable({ handleEditClick }) {
                           year: 'numeric'
                         })}
                       </p>
+                      {ev.artists?.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {ev.artists.map((ea) => {
+                            const artName = ea.artist?.name || artists.find((a) => a.id === ea.artistId)?.name;
+                            if (!artName) return null;
+                            return (
+                              <span
+                                key={ea.artistId}
+                                className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-gold/10 text-gold border border-gold/20"
+                              >
+                                {artName}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </td>
@@ -123,6 +144,13 @@ export default function AdminEventsTable({ handleEditClick }) {
                       title="Edit Event"
                     >
                       <Edit3 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(ev)}
+                      className="p-1.5 rounded-lg bg-gray-100 dark:bg-obsidian text-gray-500 hover:text-red-500 border border-gray-200 dark:border-obsidian-border transition-colors"
+                      title="Hapus Event"
+                    >
+                      <Trash2 className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => toggleSalesClosed(ev.id)}

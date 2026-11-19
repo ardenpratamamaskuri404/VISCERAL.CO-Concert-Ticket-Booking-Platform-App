@@ -101,3 +101,60 @@ export const Shadows = {
     elevation: 3,
   },
 } as const;
+
+export interface AppThemeColors {
+  darkMode: boolean;
+  bg: string;
+  surface: string;
+  card: string;
+  border: string;
+  text: string;
+  textMuted: string;
+  iconBg: string;
+  inputBg: string;
+  disabledBg: string;
+  tabBarBg: string;
+  tabBarBorder: string;
+  headerGradient: readonly [string, string];
+  gold: string;
+  oxblood: string;
+}
+
+export const getThemeColors = (darkMode: boolean): AppThemeColors => {
+  if (darkMode) {
+    return {
+      darkMode: true,
+      bg: Colors.obsidian,
+      surface: Colors.darkSurface,
+      card: Colors.darkCard,
+      border: Colors.darkBorder,
+      text: Colors.white,
+      textMuted: Colors.textMuted,
+      iconBg: 'rgba(255,255,255,0.05)',
+      inputBg: Colors.darkSurface,
+      disabledBg: 'rgba(255,255,255,0.05)',
+      tabBarBg: '#1E1E1E',
+      tabBarBorder: 'rgba(255,255,255,0.1)',
+      headerGradient: [Colors.darkCard, Colors.obsidian],
+      gold: Colors.gold,
+      oxblood: Colors.oxblood,
+    };
+  }
+  return {
+    darkMode: false,
+    bg: Colors.lightBg,
+    surface: Colors.lightSurface,
+    card: Colors.lightCard,
+    border: Colors.lightBorder,
+    text: Colors.textPrimary,
+    textMuted: Colors.textSecondary,
+    iconBg: '#EFECE8',
+    inputBg: Colors.lightCard,
+    disabledBg: '#EBE7E2',
+    tabBarBg: Colors.lightCard,
+    tabBarBorder: Colors.lightBorder,
+    headerGradient: ['#F3EDE2', Colors.lightBg],
+    gold: Colors.goldDark,
+    oxblood: Colors.oxblood,
+  };
+};

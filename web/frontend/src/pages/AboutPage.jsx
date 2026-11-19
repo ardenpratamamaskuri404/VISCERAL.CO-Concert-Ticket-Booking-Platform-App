@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
 import { motion } from 'framer-motion';
 import { ChevronDown, ChevronRight, Ticket, Shield, Zap, QrCode, Headphones, CreditCard, ArrowRight } from 'lucide-react';
 import logoSvg from '../assets/logo.svg';
@@ -182,12 +183,7 @@ export default function AboutPage() {
         </motion.div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-gray-100 dark:bg-obsidian text-gray-600 dark:text-brand-lightText py-8 border-t border-gray-200 dark:border-obsidian-border transition-colors">
-        <div className="max-w-7xl mx-auto px-4 md:px-8 flex flex-col sm:flex-row justify-between items-center text-sm text-gray-500 font-medium">
-          <p>© 2026 VISCERAL.CO — Hak Cipta Dilindungi Undang-Undang.</p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

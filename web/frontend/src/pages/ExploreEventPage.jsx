@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useStore } from '../context/StoreContext';
 import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
 import { Search, Filter, Calendar, MapPin, Ticket, ShieldAlert } from 'lucide-react';
 import { getImageUrl } from '../utils/image';
 import { motion } from 'framer-motion';
@@ -189,6 +190,8 @@ export default function ExploreEventPage() {
           ))}
         </div>
       </motion.div>
+
+      <Footer />
     </div>
   );
 }

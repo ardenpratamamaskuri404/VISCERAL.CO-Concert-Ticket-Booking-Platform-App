@@ -6,15 +6,17 @@ import { Users, Shield, Sparkles, FileText, UserPlus, Trash2, Key, Edit2, User }
 import { getImageUrl } from '../utils/image';
 
 export default function AdminUsersPage() {
-  const { auditLogs, currentUser, users } = useStore();
+  const { auditLogs, currentUser, users, updateUserRole, createAdminUser, deleteUser } = useStore();
   const isSuperadmin = currentUser?.role === 'SUPERADMIN';
 
   const [newAdminName, setNewAdminName] = useState('');
   const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [newAdminPassword, setNewAdminPassword] = useState('');
+  const [newAdminRole, setNewAdminRole] = useState('ADMIN');
+  const [submitting, setSubmitting] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
 
   // Edit Role States
-  const { updateUserRole } = useStore();
   const [showEditModal, setShowEditModal] = useState(false);
   const [editUserId, setEditUserId] = useState(null);
   const [editUserRole, setEditUserRole] = useState('');
@@ -22,17 +24,28 @@ export default function AdminUsersPage() {
 
   const handleAddAdmin = async (e) => {
     e.preventDefault();
-    if (!newAdminName || !newAdminEmail) return;
-    // For now we don't have a real POST /users endpoint implemented for Superadmin, so just alert
-    alert('Penambahan admin masih dalam tahap pengembangan API');
-    setShowAddModal(false);
-    setNewAdminName('');
-    setNewAdminEmail('');
+    if (!newAdminName || !newAdminEmail || !newAdminPassword) return;
+    setSubmitting(true);
+    const res = await createAdminUser({
+      fullName: newAdminName,
+      email: newAdminEmail,
+      password: newAdminPassword,
+      role: newAdminRole,
+    });
+    setSubmitting(false);
+    if (res && res.success) {
+      setShowAddModal(false);
+      setNewAdminName('');
+      setNewAdminEmail('');
+      setNewAdminPassword('');
+      setNewAdminRole('ADMIN');
+    }
   };
 
-  const handleDeleteUser = async (id) => {
-    // We would call DELETE /users/:id here
-    alert('Penghapusan user melalui dashboard masih dalam tahap pengembangan');
+  const handleDeleteUser = async (userObj) => {
+    if (window.confirm(`Yakin ingin menghapus akun ${userObj.fullName} (${userObj.email})?`)) {
+      await deleteUser(userObj.id);
+    }
   };
 
   const handleEditUser = (user) => {
@@ -159,7 +172,7 @@ export default function AdminUsersPage() {
                         )}
                         {u.id !== currentUser.id && isSuperadmin && (
                           <button
-                            onClick={() => handleDeleteUser(u.id)}
+                            onClick={() => handleDeleteUser(u)}
                             className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
                             title="Hapus Pengguna"
                           >
@@ -236,16 +249,16 @@ export default function AdminUsersPage() {
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white dark:bg-obsidian-card p-6 rounded-3xl border border-gray-200 dark:border-obsidian-border max-w-md w-full shadow-2xl">
-            <h3 className="font-extrabold text-base mb-4">Tambah Staff Admin Baru</h3>
+            <h3 className="font-extrabold text-base text-gray-900 dark:text-white mb-4">Tambah Staff Admin Baru</h3>
             <form onSubmit={handleAddAdmin} className="space-y-3">
               <div>
-                <label className="block text-xs font-bold mb-1">Nama Lengkap Admin</label>
+                <label className="block text-xs font-bold mb-1">Nama Lengkap</label>
                 <input
                   type="text"
                   value={newAdminName}
                   onChange={(e) => setNewAdminName(e.target.value)}
-                  placeholder="MISAL: Andi Admin"
-                  className="w-full p-2.5 rounded-xl text-xs bg-gray-50 dark:bg-obsidian-surface border border-gray-200 dark:border-obsidian-border"
+                  placeholder="Nama lengkap staff"
+                  className="w-full p-2.5 rounded-xl text-xs bg-gray-50 dark:bg-obsidian-surface border border-gray-200 dark:border-obsidian-border text-gray-900 dark:text-white focus:outline-none focus:border-gold"
                   required
                 />
               </div>
@@ -256,25 +269,52 @@ export default function AdminUsersPage() {
                   type="email"
                   value={newAdminEmail}
                   onChange={(e) => setNewAdminEmail(e.target.value)}
-                  placeholder="andi@visceral.co"
-                  className="w-full p-2.5 rounded-xl text-xs bg-gray-50 dark:bg-obsidian-surface border border-gray-200 dark:border-obsidian-border"
+                  placeholder="staff@visceral.co"
+                  className="w-full p-2.5 rounded-xl text-xs bg-gray-50 dark:bg-obsidian-surface border border-gray-200 dark:border-obsidian-border text-gray-900 dark:text-white focus:outline-none focus:border-gold"
                   required
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold mb-1">Password Awal (Min. 8 Karakter)</label>
+                <input
+                  type="password"
+                  value={newAdminPassword}
+                  onChange={(e) => setNewAdminPassword(e.target.value)}
+                  placeholder="Minimal 8 karakter"
+                  minLength={8}
+                  className="w-full p-2.5 rounded-xl text-xs bg-gray-50 dark:bg-obsidian-surface border border-gray-200 dark:border-obsidian-border text-gray-900 dark:text-white focus:outline-none focus:border-gold"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold mb-1">Role Hak Akses</label>
+                <select
+                  value={newAdminRole}
+                  onChange={(e) => setNewAdminRole(e.target.value)}
+                  className="w-full p-2.5 rounded-xl text-xs bg-gray-50 dark:bg-obsidian-surface border border-gray-200 dark:border-obsidian-border text-gray-900 dark:text-white focus:outline-none focus:border-gold"
+                >
+                  <option value="ADMIN">STAFF ADMIN</option>
+                  <option value="SUPERADMIN">SUPERADMIN</option>
+                  <option value="CUSTOMER">CUSTOMER</option>
+                </select>
               </div>
 
               <div className="flex gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="flex-1 py-2.5 rounded-xl bg-gray-200 dark:bg-obsidian text-xs font-bold"
+                  className="flex-1 py-2.5 rounded-xl bg-gray-200 dark:bg-obsidian text-gray-800 dark:text-gray-200 text-xs font-bold"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 rounded-xl gold-gradient-btn text-obsidian text-xs font-extrabold shadow-gold-glow"
+                  disabled={submitting}
+                  className="flex-1 py-2.5 rounded-xl gold-gradient-btn text-obsidian text-xs font-extrabold shadow-gold-glow disabled:opacity-50"
                 >
-                  Simpan Admin
+                  {submitting ? 'Menyimpan...' : 'Simpan Akun'}
                 </button>
               </div>
             </form>
@@ -286,8 +326,8 @@ export default function AdminUsersPage() {
       {showEditModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white dark:bg-obsidian-card p-6 rounded-3xl border border-gray-200 dark:border-obsidian-border max-w-sm w-full shadow-2xl animate-scaleIn">
-            <h3 className="font-extrabold text-base mb-4">Ubah Role Pengguna</h3>
-            <p className="text-xs text-gray-50 mb-4">
+            <h3 className="font-extrabold text-base text-gray-900 dark:text-white mb-4">Ubah Role Pengguna</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
               Ubah hak akses untuk <strong className="text-gray-900 dark:text-white">{editUserName}</strong>.
             </p>
             

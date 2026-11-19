@@ -6,6 +6,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { MapPin, Calendar, Clock, ShieldCheck, Ticket, ArrowLeft, Download } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import logoSvg from '../assets/logo.svg';
+import { formatWibTime } from '../utils/date';
 
 export default function TicketDetailPage() {
   const { ticketId } = useParams();
@@ -117,7 +118,7 @@ export default function TicketDetailPage() {
               </div>
               <div>
                 <span className="text-[10px] text-gray-400 uppercase tracking-wider block">Open Gate</span>
-                <span className="text-xs font-bold text-gray-200">19:00 WIB</span>
+                <span className="text-xs font-bold text-gray-200">{formatWibTime(event.eventDate, -1)}</span>
               </div>
             </div>
 

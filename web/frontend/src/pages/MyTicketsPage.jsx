@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useStore } from '../context/StoreContext';
 import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
 import { Ticket, Calendar, QrCode, ShieldCheck, Clock, ChevronRight, RefreshCcw, X, AlertCircle, CheckCircle2 } from 'lucide-react';
 import api from '../api/axios';
 
@@ -353,6 +354,8 @@ export default function MyTicketsPage() {
           </div>
         </div>
       )}
+
+      <Footer />
     </div>
   );
 }

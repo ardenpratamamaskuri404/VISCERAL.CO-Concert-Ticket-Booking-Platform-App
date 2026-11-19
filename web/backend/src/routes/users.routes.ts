@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import path from 'path';
 import { prisma } from '../config/db';
+import { io } from '../index';
 import bcrypt from 'bcryptjs';
 import { authMiddleware } from '../middlewares/auth.middleware';
 
@@ -69,6 +70,7 @@ usersRoutes.post('/audit-logs', async (c) => {
         user: { select: { fullName: true, role: true } }
       }
     });
+    io.emit('audit_logs_updated');
     return c.json({ success: true, data: log });
   } catch (error) {
     return c.json({ error: 'Gagal menyimpan log' }, 500);
@@ -127,6 +129,8 @@ usersRoutes.put('/profile', async (c) => {
         role: true,
       }
     });
+
+    io.emit('users_updated', { action: 'profile_updated', userId: updatedUser.id });
 
     return c.json({ message: 'Profil berhasil diperbarui', data: updatedUser });
   } catch (error) {
@@ -228,10 +232,127 @@ usersRoutes.put('/:id/role', async (c) => {
       }
     });
 
+    io.emit('users_updated', { action: 'update_role', userId: targetUserId });
+    io.emit('audit_logs_updated');
+
     return c.json({ success: true, message: 'Role berhasil diubah', data: updatedUser });
   } catch (error) {
     console.error('Update Role Error:', error);
     return c.json({ error: 'Gagal mengubah role' }, 500);
+  }
+});
+
+// 5. CREATE USER / STAFF ADMIN (SUPERADMIN ONLY)
+usersRoutes.post('/', async (c) => {
+  try {
+    const user = c.get('user');
+    if (user.role !== 'SUPERADMIN') {
+      return c.json({ error: 'Akses ditolak. Hanya Superadmin yang diizinkan.' }, 403);
+    }
+
+    const { fullName, email, password, phoneNumber, role } = await c.req.json();
+
+    if (!fullName || !email || !password) {
+      return c.json({ error: 'Nama lengkap, email, dan password wajib diisi' }, 400);
+    }
+
+    if (password.length < 8) {
+      return c.json({ error: 'Password minimal 8 karakter' }, 400);
+    }
+
+    const validRole = ['CUSTOMER', 'ADMIN', 'SUPERADMIN'].includes(role) ? role : 'ADMIN';
+
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing) {
+      return c.json({ error: 'Email tersebut sudah terdaftar di sistem' }, 400);
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const createdUser = await prisma.user.create({
+      data: {
+        fullName,
+        email,
+        password: hashedPassword,
+        phoneNumber: phoneNumber || null,
+        role: validRole,
+      },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        phoneNumber: true,
+        role: true,
+        createdAt: true,
+      },
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        userId: user.id,
+        action: 'CREATE_USER',
+        entityId: createdUser.id,
+        metadata: { email: createdUser.email, role: createdUser.role, fullName: createdUser.fullName },
+      },
+    }).catch(() => {});
+
+    io.emit('users_updated', { action: 'create', userId: createdUser.id });
+    io.emit('audit_logs_updated');
+
+    return c.json({ success: true, message: 'Akun pengguna berhasil ditambahkan', data: createdUser }, 201);
+  } catch (error) {
+    console.error('Create User Error:', error);
+    return c.json({ error: 'Gagal menambahkan pengguna baru' }, 500);
+  }
+});
+
+// 6. DELETE USER (SUPERADMIN ONLY)
+usersRoutes.delete('/:id', async (c) => {
+  try {
+    const user = c.get('user');
+    if (user.role !== 'SUPERADMIN') {
+      return c.json({ error: 'Akses ditolak. Hanya Superadmin yang diizinkan.' }, 403);
+    }
+
+    const targetUserId = c.req.param('id');
+    if (targetUserId === user.id) {
+      return c.json({ error: 'Anda tidak dapat menghapus akun Anda sendiri' }, 400);
+    }
+
+    const targetUser = await prisma.user.findUnique({ where: { id: targetUserId } });
+    if (!targetUser) {
+      return c.json({ error: 'User tidak ditemukan' }, 404);
+    }
+
+    const [orderCount, eventCount] = await Promise.all([
+      prisma.order.count({ where: { customerId: targetUserId } }),
+      prisma.event.count({ where: { createdById: targetUserId } }),
+    ]);
+
+    if (orderCount > 0 || eventCount > 0) {
+      return c.json(
+        { error: 'Pengguna tidak dapat dihapus karena masih memiliki riwayat transaksi atau event terkait.' },
+        400
+      );
+    }
+
+    await prisma.user.delete({ where: { id: targetUserId } });
+
+    await prisma.auditLog.create({
+      data: {
+        userId: user.id,
+        action: 'DELETE_USER',
+        entityId: targetUserId,
+        metadata: { email: targetUser.email, fullName: targetUser.fullName, role: targetUser.role },
+      },
+    }).catch(() => {});
+
+    io.emit('users_updated', { action: 'delete', userId: targetUserId });
+    io.emit('audit_logs_updated');
+
+    return c.json({ success: true, message: 'Pengguna berhasil dihapus' });
+  } catch (error) {
+    console.error('Delete User Error:', error);
+    return c.json({ error: 'Gagal menghapus pengguna' }, 500);
   }
 });
 

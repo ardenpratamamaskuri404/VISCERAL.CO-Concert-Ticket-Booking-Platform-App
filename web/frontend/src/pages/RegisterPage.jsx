@@ -61,12 +61,33 @@ export default function RegisterPage() {
     try {
       const response = await api.post('/auth/register', {
         fullName,
-        email,
+        email: email.trim(),
         phoneNumber: phone,
         password
       });
-      
-      loginUser(response.data.user, response.data.token);
+
+      if (response.data?.requiresOtp) {
+        const targetEmail = response.data.email || email.trim();
+        sessionStorage.setItem(
+          'visceral_pending_otp',
+          JSON.stringify({
+            email: targetEmail,
+            expiresAtMs: Date.now() + (response.data.otpExpiresInSeconds || 300) * 1000,
+          })
+        );
+        navigate('/otp', {
+          state: {
+            mode: 'LOGIN',
+            email: targetEmail,
+            password,
+            otpExpiresInSeconds: response.data.otpExpiresInSeconds || 300,
+            message: response.data.message,
+          },
+        });
+        return;
+      }
+
+      loginUser(response.data.user, response.data.token, response.data.expiresAt);
       navigate('/');
     } catch (error) {
       setErrorMsg(error.response?.data?.error || 'Terjadi kesalahan saat registrasi.');

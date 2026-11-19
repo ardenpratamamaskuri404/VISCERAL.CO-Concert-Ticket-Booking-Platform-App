@@ -6,17 +6,21 @@ import { authMiddleware } from '../middlewares/auth.middleware';
 import { calculateOrderCheckout } from '../services/order.service';
 import { createDokuPayment } from '../services/doku.service';
 import { createNotification } from './notifications.routes';
+import { sendOrderSuccessEmail } from '../services/email.service';
 
 const ordersRoutes = new Hono<{ Variables: { user: any } }>();
 
-// Ambil riwayat pesanan (Untuk fitur Tiket Saya)
-ordersRoutes.get('/', async (c) => {
+// Ambil riwayat pesanan (Untuk fitur Tiket Saya & Admin) - Protected by authMiddleware
+ordersRoutes.get('/', authMiddleware, async (c) => {
   try {
-    // Idealnya ambil dari auth token (c.get('user')), tapi sementara ambil semua order untuk demo atau filter via query
+    const authUser = c.get('user');
     const customerId = c.req.query('customerId');
     
-    let whereClause = {};
-    if (customerId) {
+    let whereClause: any = {};
+    if (authUser.role === 'CUSTOMER') {
+      // Customer hanya boleh melihat pesanannya sendiri
+      whereClause = { customerId: authUser.id };
+    } else if (customerId) {
       whereClause = { customerId };
     }
 
@@ -79,9 +83,155 @@ ordersRoutes.get('/', async (c) => {
   }
 });
 
-// Get Order by ID
-ordersRoutes.get('/:id', async (c) => {
+// GET all refund requests (Admin & Superadmin)
+ordersRoutes.get('/refunds', authMiddleware, async (c) => {
   try {
+    const user = c.get('user');
+    if (user.role !== 'ADMIN' && user.role !== 'SUPERADMIN') {
+      return c.json({ error: 'Akses ditolak. Hanya Admin/Superadmin.' }, 403);
+    }
+
+    const refunds = await prisma.refund.findMany({
+      include: {
+        order: {
+          include: {
+            customer: { select: { id: true, fullName: true, email: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const formatted = refunds.map((r) => ({
+      id: r.id,
+      orderId: r.orderId,
+      orderNumber: r.order?.orderNumber || '-',
+      customerName: r.order?.customer?.fullName || 'Unknown',
+      customerEmail: r.order?.customer?.email || '-',
+      amount: Number(r.order?.totalAmount || 0),
+      reason: r.reason,
+      status: r.status,
+      processedBy: r.processedBy,
+      createdAt: r.createdAt,
+    }));
+
+    return c.json({ success: true, data: formatted });
+  } catch (error: any) {
+    console.error('Get Refunds Error:', error);
+    return c.json({ error: 'Gagal memuat daftar refund' }, 500);
+  }
+});
+
+// Approve Refund (Admin & Superadmin)
+ordersRoutes.put('/refunds/:refundId/approve', authMiddleware, async (c) => {
+  try {
+    const user = c.get('user');
+    if (user.role !== 'ADMIN' && user.role !== 'SUPERADMIN') {
+      return c.json({ error: 'Akses ditolak.' }, 403);
+    }
+
+    const refundId = c.req.param('refundId');
+    const refund = await prisma.refund.findUnique({
+      where: { id: refundId },
+      include: { order: { include: { tickets: true } } },
+    });
+
+    if (!refund) return c.json({ error: 'Permintaan refund tidak ditemukan' }, 404);
+    if (refund.status !== 'REQUESTED') {
+      return c.json({ error: 'Permintaan refund sudah diproses sebelumnya' }, 400);
+    }
+
+    await prisma.refund.update({
+      where: { id: refundId },
+      data: { status: 'APPROVED', processedBy: user.id },
+    });
+
+    await prisma.order.update({
+      where: { id: refund.orderId },
+      data: { status: 'CANCELLED' },
+    });
+
+    for (const ticket of refund.order.tickets) {
+      await prisma.ticket.update({
+        where: { id: ticket.id },
+        data: { status: 'CANCELLED' },
+      });
+      if (ticket.seatId) {
+        await prisma.seat.update({
+          where: { id: ticket.seatId },
+          data: { status: 'AVAILABLE', lockedUntil: null, lockedByUserId: null },
+        });
+      }
+    }
+
+    await prisma.auditLog.create({
+      data: {
+        userId: user.id,
+        action: 'APPROVE_REFUND',
+        entityId: refundId,
+        metadata: { orderId: refund.orderId, orderNumber: refund.order.orderNumber },
+      },
+    }).catch(() => {});
+
+    io.emit('refunds_updated', { action: 'approve', refundId });
+    io.emit('orders_updated', { action: 'refund_approved', orderId: refund.orderId });
+    io.emit('events_updated', { action: 'seat_released' });
+    io.emit('audit_logs_updated');
+
+    return c.json({ success: true, message: 'Refund disetujui dan kursi dikembalikan ke katalog' });
+  } catch (error: any) {
+    console.error('Approve Refund Error:', error);
+    return c.json({ error: 'Gagal menyetujui refund' }, 500);
+  }
+});
+
+// Reject Refund (Admin & Superadmin)
+ordersRoutes.put('/refunds/:refundId/reject', authMiddleware, async (c) => {
+  try {
+    const user = c.get('user');
+    if (user.role !== 'ADMIN' && user.role !== 'SUPERADMIN') {
+      return c.json({ error: 'Akses ditolak.' }, 403);
+    }
+
+    const refundId = c.req.param('refundId');
+    const refund = await prisma.refund.findUnique({
+      where: { id: refundId },
+      include: { order: true },
+    });
+
+    if (!refund) return c.json({ error: 'Permintaan refund tidak ditemukan' }, 404);
+    if (refund.status !== 'REQUESTED') {
+      return c.json({ error: 'Permintaan refund sudah diproses sebelumnya' }, 400);
+    }
+
+    await prisma.refund.update({
+      where: { id: refundId },
+      data: { status: 'REJECTED', processedBy: user.id },
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        userId: user.id,
+        action: 'REJECT_REFUND',
+        entityId: refundId,
+        metadata: { orderId: refund.orderId, orderNumber: refund.order.orderNumber },
+      },
+    }).catch(() => {});
+
+    io.emit('refunds_updated', { action: 'reject', refundId });
+    io.emit('audit_logs_updated');
+
+    return c.json({ success: true, message: 'Permintaan refund ditolak' });
+  } catch (error: any) {
+    console.error('Reject Refund Error:', error);
+    return c.json({ error: 'Gagal menolak refund' }, 500);
+  }
+});
+
+// Get Order by ID - Protected by authMiddleware
+ordersRoutes.get('/:id', authMiddleware, async (c) => {
+  try {
+    const authUser = c.get('user');
     const orderId = c.req.param('id');
     const order = await prisma.order.findUnique({
       where: { id: orderId },
@@ -97,6 +247,9 @@ ordersRoutes.get('/:id', async (c) => {
     });
 
     if (!order) return c.json({ error: 'Pesanan tidak ditemukan' }, 404);
+    if (authUser.role === 'CUSTOMER' && order.customerId !== authUser.id) {
+      return c.json({ error: 'Akses ditolak untuk pesanan ini' }, 403);
+    }
 
     let eventTitle = 'Unknown Event';
     let venueName = '';
@@ -156,7 +309,7 @@ ordersRoutes.post('/checkout', authMiddleware, async (c) => {
 
     // Logika perhitungan order dipindah ke service
     const checkoutResult = await calculateOrderCheckout(eventId, tickets);
-    if (checkoutResult.error) {
+    if (checkoutResult.error !== null) {
       return c.json({ success: false, message: checkoutResult.error }, checkoutResult.code as any);
     }
 
@@ -194,6 +347,23 @@ ordersRoutes.post('/checkout', authMiddleware, async (c) => {
       }
     }
 
+    await createNotification(
+      'Pesanan Baru',
+      `Pesanan ${order.orderNumber} dari ${customerName || 'Customer'} senilai Rp ${Number(totalAmount).toLocaleString('id-ID')}`,
+      'ORDER',
+      ['ADMIN', 'SUPERADMIN']
+    ).catch(() => {});
+
+    io.emit('new_order', {
+      ...order,
+      customerName: customerName || 'Customer',
+      customerEmail: customerEmail || '',
+      totalAmount: Number(order.totalAmount),
+    });
+    io.emit('orders_updated', { action: 'create', orderId: order.id });
+    io.emit('events_updated', { action: 'seat_locked', eventId });
+    io.emit('new_notification');
+
     return c.json({
       success: true,
       message: 'Berhasil membuat pesanan',
@@ -206,24 +376,43 @@ ordersRoutes.post('/checkout', authMiddleware, async (c) => {
   }
 });
 
-// Mobile Return URL (Menampilkan halaman HTML sederhana agar user bisa menutup WebBrowser)
+// Mobile Return URL (Bridge HTTPS yang aman untuk DOKU, lalu redirect otomatis kembali ke app Expo)
 ordersRoutes.all('/mobile-return/:id', (c) => {
+  const rawRedirect = c.req.query('redirect') || '';
+  const safeRedirect =
+    rawRedirect.startsWith('exp://') ||
+    rawRedirect.startsWith('visceral://') ||
+    rawRedirect.startsWith('http://') ||
+    rawRedirect.startsWith('https://')
+      ? rawRedirect
+      : '';
+
   return c.html(`
     <html>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Kembali ke VISCERAL.CO</title>
         <style>
-          body { background: #14110F; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; text-align: center; padding: 20px; margin: 0; }
-          .icon { font-size: 50px; margin-bottom: 20px; }
-          h2 { color: #C89B3C; margin-bottom: 10px; }
-          p { color: #A0A0A0; line-height: 1.5; }
+          body { background: #14110F; color: #FFFFFF; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; font-family: -apple-system, BlinkMacSystemFont, sans-serif; text-align: center; padding: 24px; margin: 0; }
+          .card { background: #201C19; border: 1px solid #2A2520; border-radius: 24px; padding: 32px 24px; max-width: 360px; width: 100%; }
+          .icon { font-size: 48px; margin-bottom: 16px; }
+          h2 { color: #C89B3C; margin: 0 0 10px; font-size: 22px; }
+          p { color: #9E9893; line-height: 1.5; font-size: 14px; margin: 0 0 24px; }
+          .btn { display: inline-block; width: 100%; box-sizing: border-box; background: #C89B3C; color: #14110F; font-weight: 800; text-decoration: none; padding: 14px 20px; border-radius: 14px; font-size: 14px; }
         </style>
       </head>
       <body>
-        <div class="icon">✅</div>
-        <h2>Transaksi Diproses</h2>
-        <p>Pembayaran Anda sedang kami konfirmasi dengan DOKU.</p>
-        <p>Silakan tekan tombol <b>Done</b> atau <b>X</b> di pojok layar untuk menutup halaman ini dan kembali ke aplikasi.</p>
+        <div class="card">
+          <div class="icon">✅</div>
+          <h2>Pembayaran Diproses</h2>
+          <p>Terima kasih! Pembayaran Anda sedang dikonfirmasi. Ketuk tombol di bawah atau tutup jendela ini untuk melihat tiket Anda di aplikasi.</p>
+          ${safeRedirect ? `<a class="btn" href="${safeRedirect.replace(/"/g, '&quot;')}">Kembali ke Aplikasi</a>` : ''}
+        </div>
+        ${
+          safeRedirect
+            ? `<script>setTimeout(function(){ window.location.href = ${JSON.stringify(safeRedirect)}; }, 350);</script>`
+            : ''
+        }
       </body>
     </html>
   `);
@@ -233,12 +422,23 @@ ordersRoutes.all('/mobile-return/:id', (c) => {
 ordersRoutes.post('/:id/generate-doku', authMiddleware, async (c) => {
   try {
     const orderId = c.req.param('id');
-    const body = await c.req.json().catch(() => ({})); // Parse body safely
+    const body = await c.req.json().catch(() => ({}));
     const order = await prisma.order.findUnique({ where: { id: orderId } });
     if (!order) return c.json({ success: false, message: 'Pesanan tidak ditemukan' }, 404);
 
-    // If mobile sends a direct deep link returnUrl, use it. Otherwise fallback to the HTML bridge page.
-    const mobileCallbackUrl = body.returnUrl || `${process.env.API_URL || 'https://wisdom-detection-uncharted.ngrok-free.dev'}/api/orders/mobile-return/${order.id}`;
+    // DOKU membutuhkan callback_url HTTP/HTTPS yang valid (bukan custom scheme exp:// atau visceral://)
+    const proto = c.req.header('x-forwarded-proto') || 'https';
+    const host = c.req.header('x-forwarded-host') || c.req.header('host');
+    const inferredBase = host ? `${proto}://${host}` : 'https://wisdom-detection-uncharted.ngrok-free.dev';
+    const publicBase = (process.env.API_URL || inferredBase).replace(/\/$/, '');
+
+    const rawReturnUrl = typeof body.returnUrl === 'string' ? body.returnUrl : '';
+    const isHttpReturn = rawReturnUrl.startsWith('http://') || rawReturnUrl.startsWith('https://');
+    const mobileCallbackUrl = isHttpReturn
+      ? rawReturnUrl
+      : `${publicBase}/api/orders/mobile-return/${order.id}${
+          rawReturnUrl ? `?redirect=${encodeURIComponent(rawReturnUrl)}` : ''
+        }`;
 
     const dokuRes = await createDokuPayment(order, Number(order.totalAmount), mobileCallbackUrl);
     if (dokuRes.success) {
@@ -250,6 +450,30 @@ ordersRoutes.post('/:id/generate-doku', authMiddleware, async (c) => {
     return c.json({ success: false, message: error.message }, 500);
   }
 });
+
+const normalizeDokuChannel = (raw?: string | null, fallback?: string | null): string => {
+  const val = String(raw || fallback || 'DOKU_CHECKOUT').toUpperCase().trim();
+  const mapping: Record<string, string> = {
+    EMONEY_DANA: 'DANA',
+    DANA: 'DANA',
+    EMONEY_SHOPEEPAY: 'SHOPEEPAY',
+    SHOPEEPAY: 'SHOPEEPAY',
+    EMONEY_OVO: 'OVO',
+    OVO: 'OVO',
+    QRIS: 'DOKU_QRIS',
+    DOKU_QRIS: 'DOKU_QRIS',
+    VIRTUAL_ACCOUNT_BCA: 'BCA_VA',
+    BCA_VA: 'BCA_VA',
+    VIRTUAL_ACCOUNT_BANK_MANDIRI: 'MANDIRI_VA',
+    VIRTUAL_ACCOUNT_MANDIRI: 'MANDIRI_VA',
+    MANDIRI_VA: 'MANDIRI_VA',
+    VIRTUAL_ACCOUNT_BRI: 'BRI_VA',
+    BRI_VA: 'BRI_VA',
+    VIRTUAL_ACCOUNT_BNI: 'BNI_VA',
+    BNI_VA: 'BNI_VA',
+  };
+  return mapping[val] || val;
+};
 
 // Doku Webhook Callback (Dipanggil oleh server Doku)
 ordersRoutes.post('/doku-webhook', async (c) => {
@@ -267,49 +491,112 @@ ordersRoutes.post('/doku-webhook', async (c) => {
         include: { tickets: true }
       });
 
-      if (order && order.status === 'PENDING') {
+      if (!order || order.status !== 'PENDING') {
+        return c.json({ message: 'OK' }, 200);
+      }
+
+      const detectedChannel = normalizeDokuChannel(
+        bodyJson.channel?.id ||
+          bodyJson.transaction?.channel ||
+          bodyJson.payment?.channel ||
+          bodyJson.service?.id,
+        order.paymentChannel || order.paymentMethod
+      );
+
+      const txStatus = String(
+        bodyJson.transaction?.status || bodyJson.payment?.status || 'SUCCESS'
+      ).toUpperCase();
+
+      const isFailedOrExpired = ['FAILED', 'EXPIRED', 'CANCELLED', 'VOID', 'DENY'].includes(txStatus);
+      const isPending = ['PENDING', 'IN_PROGRESS'].includes(txStatus);
+
+      if (isPending) {
+        return c.json({ message: 'OK' }, 200);
+      }
+
+      if (isFailedOrExpired) {
+        const nextStatus = txStatus === 'EXPIRED' ? 'EXPIRED' : 'CANCELLED';
+
         await prisma.order.update({
           where: { id: order.id },
-          data: { 
-            status: 'PAID',
+          data: {
+            status: nextStatus,
             dokuReferenceId: bodyJson.transaction?.doku_transaction_id || requestIdHeader,
-            paymentChannel: bodyJson.transaction?.channel || 'DOKU_CHECKOUT'
-          }
+            paymentChannel: detectedChannel,
+          },
         });
 
-        for (const ticket of order.tickets) {
-          await prisma.ticket.update({
-            where: { id: ticket.id },
-            data: { status: 'ACTIVE' }
-          });
-          
-          if (ticket.seatId) {
-            await prisma.seat.update({
-              where: { id: ticket.seatId },
-              data: { status: 'SOLD', lockedByUserId: order.customerId }
-            });
-          }
-        }
-
-        // Create notification for all admins
-        const admins = await prisma.user.findMany({
-          where: { role: { in: ['ADMIN', 'SUPERADMIN'] } }
+        await prisma.ticket.updateMany({
+          where: { orderId: order.id },
+          data: { status: 'CANCELLED' },
         });
-        if (admins.length > 0) {
-          await prisma.notification.createMany({
-            data: admins.map(admin => ({
-              userId: admin.id,
-              title: 'Pesanan Lunas',
-              message: `Pesanan ${order.orderNumber} telah dibayar senilai Rp ${Number(order.totalAmount).toLocaleString('id-ID')}`,
-              type: 'ORDER'
-            }))
+
+        const seatIds = order.tickets.map((t) => t.seatId).filter((id): id is string => Boolean(id));
+        if (seatIds.length > 0) {
+          await prisma.seat.updateMany({
+            where: { id: { in: seatIds } },
+            data: { status: 'AVAILABLE', lockedUntil: null, lockedByUserId: null },
           });
         }
 
-        io.emit('order_paid', order);
+        await createNotification(
+          'Pembayaran Gagal / Kedaluwarsa',
+          `Pesanan ${order.orderNumber} berstatus ${nextStatus} dari DOKU. Kursi telah dilepas kembali.`,
+          'ORDER',
+          ['ADMIN', 'SUPERADMIN']
+        ).catch(() => {});
+
+        io.emit('orders_updated', { action: 'doku_failed', orderId: order.id, status: nextStatus });
+        io.emit('events_updated', { action: 'seat_released' });
         io.emit('new_notification');
         return c.json({ message: 'OK' }, 200);
       }
+
+      // Status SUCCESS / PAID / SETTLEMENT -> Setujui pesanan otomatis & tandai kursi SOLD
+      await prisma.order.update({
+        where: { id: order.id },
+        data: { 
+          status: 'PAID',
+          dokuReferenceId: bodyJson.transaction?.doku_transaction_id || requestIdHeader,
+          paymentChannel: detectedChannel
+        }
+      });
+
+      for (const ticket of order.tickets) {
+        await prisma.ticket.update({
+          where: { id: ticket.id },
+          data: { status: 'ACTIVE' }
+        });
+        
+        if (ticket.seatId) {
+          await prisma.seat.update({
+            where: { id: ticket.seatId },
+            data: { status: 'SOLD', lockedByUserId: order.customerId, lockedUntil: null }
+          });
+        }
+      }
+
+      // Create notification for all admins
+      const admins = await prisma.user.findMany({
+        where: { role: { in: ['ADMIN', 'SUPERADMIN'] } }
+      });
+      if (admins.length > 0) {
+        await prisma.notification.createMany({
+          data: admins.map(admin => ({
+            userId: admin.id,
+            title: 'Pesanan Lunas',
+            message: `Pesanan ${order.orderNumber} telah dibayar senilai Rp ${Number(order.totalAmount).toLocaleString('id-ID')}`,
+            type: 'ORDER'
+          }))
+        });
+      }
+
+      io.emit('order_paid', order);
+      io.emit('orders_updated', { action: 'doku_paid', orderId: order.id });
+      io.emit('events_updated', { action: 'seat_sold' });
+      io.emit('new_notification');
+      sendOrderSuccessEmail(order.id).catch(() => {});
+      return c.json({ message: 'OK' }, 200);
     }
 
     return c.json({ message: 'OK' }, 200);
@@ -355,6 +642,7 @@ ordersRoutes.post('/:id/simulate-pay', async (c) => {
       // Reload order with updated status
       const updatedOrder = await prisma.order.findUnique({ where: { id: orderId } });
       io.emit('order_paid', updatedOrder);
+      sendOrderSuccessEmail(order.id).catch(() => {});
       
       return c.json({ success: true, message: 'Simulasi Lunas Berhasil' });
     }
@@ -364,9 +652,14 @@ ordersRoutes.post('/:id/simulate-pay', async (c) => {
   }
 });
 
-// Manual Approve Order (Oleh Admin)
-ordersRoutes.put('/:id/approve', async (c) => {
+// Manual Approve Order (Oleh Admin / Superadmin) - Protected by authMiddleware
+ordersRoutes.put('/:id/approve', authMiddleware, async (c) => {
   try {
+    const authUser = c.get('user');
+    if (authUser.role !== 'ADMIN' && authUser.role !== 'SUPERADMIN') {
+      return c.json({ success: false, message: 'Akses ditolak.' }, 403);
+    }
+
     const orderId = c.req.param('id');
     const order = await prisma.order.findUnique({
       where: { id: orderId },
@@ -411,7 +704,11 @@ ordersRoutes.put('/:id/approve', async (c) => {
       }
 
       io.emit('order_paid', order);
+      io.emit('orders_updated', { action: 'approve', orderId: order.id });
+      io.emit('events_updated', { action: 'seat_sold' });
       io.emit('new_notification');
+      io.emit('audit_logs_updated');
+      sendOrderSuccessEmail(order.id).catch(() => {});
       return c.json({ success: true, message: 'Pesanan berhasil disetujui (PAID)' });
     }
 
@@ -422,16 +719,82 @@ ordersRoutes.put('/:id/approve', async (c) => {
   }
 });
 
-// Mock Upload Proof Endpoint
-ordersRoutes.put('/:id/proof', async (c) => {
+// Reject / Cancel Order (Oleh Admin / Superadmin)
+ordersRoutes.put('/:id/reject', authMiddleware, async (c) => {
   try {
+    const user = c.get('user');
+    if (user.role !== 'ADMIN' && user.role !== 'SUPERADMIN') {
+      return c.json({ success: false, message: 'Akses ditolak.' }, 403);
+    }
+
+    const orderId = c.req.param('id');
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: { tickets: true }
+    });
+
+    if (!order) return c.json({ success: false, message: 'Pesanan tidak ditemukan' }, 404);
+    if (order.status !== 'PENDING') {
+      return c.json({ success: false, message: 'Hanya pesanan PENDING yang dapat ditolak' }, 400);
+    }
+
+    await prisma.order.update({
+      where: { id: order.id },
+      data: { status: 'CANCELLED' }
+    });
+
+    for (const ticket of order.tickets) {
+      await prisma.ticket.update({
+        where: { id: ticket.id },
+        data: { status: 'CANCELLED' }
+      });
+      if (ticket.seatId) {
+        await prisma.seat.update({
+          where: { id: ticket.seatId },
+          data: { status: 'AVAILABLE', lockedUntil: null, lockedByUserId: null }
+        });
+      }
+    }
+
+    await prisma.auditLog.create({
+      data: {
+        userId: user.id,
+        action: 'REJECT_ORDER',
+        entityId: order.id,
+        metadata: { orderId: order.id, orderNumber: order.orderNumber }
+      }
+    }).catch(() => {});
+
+    io.emit('orders_updated', { action: 'reject', orderId: order.id });
+    io.emit('events_updated', { action: 'seat_released' });
+    io.emit('audit_logs_updated');
+
+    return c.json({ success: true, message: 'Pesanan berhasil ditolak (CANCELLED)' });
+  } catch (error: any) {
+    console.error('Reject order error:', error);
+    return c.json({ success: false, message: error.message }, 500);
+  }
+});
+
+// Upload Proof Endpoint - Protected by authMiddleware
+ordersRoutes.put('/:id/proof', authMiddleware, async (c) => {
+  try {
+    const authUser = c.get('user');
     const orderId = c.req.param('id');
     const body = await c.req.json();
+
+    const existing = await prisma.order.findUnique({ where: { id: orderId } });
+    if (!existing) return c.json({ success: false, message: 'Pesanan tidak ditemukan' }, 404);
+    if (authUser.role === 'CUSTOMER' && existing.customerId !== authUser.id) {
+      return c.json({ success: false, message: 'Akses ditolak.' }, 403);
+    }
     
     await prisma.order.update({
       where: { id: orderId },
       data: { paymentProof: body.proofUrl }
     });
+
+    io.emit('orders_updated', { action: 'proof_uploaded', orderId });
     
     return c.json({ success: true, message: 'Bukti diunggah' });
   } catch (error: any) {
@@ -473,6 +836,9 @@ ordersRoutes.post('/:id/refund', authMiddleware, async (c) => {
       'REFUND',
       ['ADMIN', 'SUPERADMIN']
     );
+
+    io.emit('refunds_updated', { action: 'create', refundId: refund.id });
+    io.emit('new_notification');
 
     return c.json({ success: true, refund });
   } catch (error: any) {

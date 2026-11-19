@@ -1,18 +1,27 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Platform } from 'react-native';
-import { Tabs } from 'expo-router';
+import { Tabs, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../../src/constants/theme';
+import { Colors, getThemeColors } from '../../src/constants/theme';
 import { useApp } from '../../src/context/AppContext';
 
 const { width } = Dimensions.get('window');
 
-function CustomTabBar({ state, descriptors, navigation, unreadNotifCount }: any) {
+function CustomTabBar({ state, descriptors, navigation, unreadNotifCount, darkMode }: any) {
+  const router = useRouter();
+  const theme = getThemeColors(darkMode);
+  if (!state?.routes) return null;
+
   return (
     <View style={styles.tabBarContainer}>
-      <View style={styles.tabBar}>
+      <View
+        style={[
+          styles.tabBar,
+          { backgroundColor: theme.tabBarBg, borderColor: theme.tabBarBorder },
+        ]}
+      >
         {state.routes.map((route: any, index: number) => {
-          const { options } = descriptors[route.key];
+          const { options } = descriptors?.[route.key] || { options: {} };
           const label =
             options.tabBarLabel !== undefined
               ? options.tabBarLabel
@@ -23,19 +32,25 @@ function CustomTabBar({ state, descriptors, navigation, unreadNotifCount }: any)
           const isFocused = state.index === index;
 
           const onPress = () => {
-            const event = navigation.emit({
-              type: 'tabPress',
-              target: route.key,
-              canPreventDefault: true,
-            });
+            if (navigation?.emit) {
+              const event = navigation.emit({
+                type: 'tabPress',
+                target: route.key,
+                canPreventDefault: true,
+              });
 
-            if (!isFocused && !event.defaultPrevented) {
-              navigation.navigate(route.name);
+              if (!isFocused && !event.defaultPrevented) {
+                navigation.navigate(route.name);
+              }
+            } else if (!isFocused) {
+              const targetPath = route.name === 'index' ? '/(tabs)' : `/(tabs)/${route.name}`;
+              router.navigate(targetPath as any);
             }
           };
 
           let iconName: any = 'home';
           if (route.name === 'index') iconName = isFocused ? 'home' : 'home-outline';
+          if (route.name === 'schedule') iconName = isFocused ? 'calendar' : 'calendar-outline';
           if (route.name === 'tickets') iconName = isFocused ? 'ticket' : 'ticket-outline';
           if (route.name === 'profile') iconName = isFocused ? 'person' : 'person-outline';
 
@@ -54,21 +69,23 @@ function CustomTabBar({ state, descriptors, navigation, unreadNotifCount }: any)
               ]}
             >
               <View style={styles.iconContainer}>
-                <Ionicons 
-                  name={iconName} 
-                  size={22} 
-                  color={isFocused ? Colors.obsidian : Colors.white} 
+                <Ionicons
+                  name={iconName}
+                  size={22}
+                  color={isFocused ? Colors.obsidian : theme.text}
                 />
                 {route.name === 'profile' && unreadNotifCount > 0 && (
-                  <View style={styles.badge}>
+                  <View style={[styles.badge, { borderColor: theme.tabBarBg }]}>
                     <Text style={styles.badgeText}>{unreadNotifCount}</Text>
                   </View>
                 )}
               </View>
-              <Text style={[
-                styles.tabLabel, 
-                { color: isFocused ? Colors.obsidian : Colors.textMuted }
-              ]}>
+              <Text
+                style={[
+                  styles.tabLabel,
+                  { color: isFocused ? Colors.obsidian : theme.textMuted },
+                ]}
+              >
                 {label as string}
               </Text>
             </TouchableOpacity>
@@ -80,11 +97,13 @@ function CustomTabBar({ state, descriptors, navigation, unreadNotifCount }: any)
 }
 
 export default function TabLayout() {
-  const { unreadNotifCount } = useApp();
+  const { unreadNotifCount, darkMode } = useApp();
 
   return (
     <Tabs
-      tabBar={(props) => <CustomTabBar {...props} unreadNotifCount={unreadNotifCount} />}
+      tabBar={(props) => (
+        <CustomTabBar {...props} unreadNotifCount={unreadNotifCount} darkMode={darkMode} />
+      )}
       screenOptions={{
         headerShown: false,
       }}
@@ -93,6 +112,12 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Beranda',
+        }}
+      />
+      <Tabs.Screen
+        name="schedule"
+        options={{
+          title: 'Jadwal',
         }}
       />
       <Tabs.Screen

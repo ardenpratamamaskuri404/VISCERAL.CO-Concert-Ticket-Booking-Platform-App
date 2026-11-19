@@ -4,6 +4,7 @@ import { useStore } from '../context/StoreContext';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { getImageUrl } from '../utils/image';
+import { formatWibTime } from '../utils/date';
 import { motion } from 'framer-motion';
 import { Calendar, Clock, MapPin, Ticket, ArrowRight, Sparkles, ShieldAlert } from 'lucide-react';
 
@@ -14,7 +15,7 @@ export default function SchedulePage() {
   const [now, setNow] = useState(new Date());
 
   useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 60000);
+    const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
@@ -65,11 +66,12 @@ export default function SchedulePage() {
 
   const getCountdown = (targetDate) => {
     const diff = new Date(targetDate) - now;
-    if (diff <= 0) return { days: 0, hours: 0, minutes: 0 };
+    if (diff <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0 };
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
     const minutes = Math.floor((diff / (1000 * 60)) % 60);
-    return { days, hours, minutes };
+    const seconds = Math.floor((diff / 1000) % 60);
+    return { days, hours, minutes, seconds };
   };
 
   const getMinPrice = (ev) => {
@@ -145,7 +147,7 @@ export default function SchedulePage() {
                     </span>
                     <span className="flex items-center gap-1.5">
                       <Clock className="w-4 h-4 text-gold" />
-                      19:00 WIB
+                      {formatWibTime(nextUpcomingEvent.eventDate)}
                     </span>
                   </div>
                 </div>
@@ -154,18 +156,22 @@ export default function SchedulePage() {
                   {(() => {
                     const cd = getCountdown(nextUpcomingEvent.eventDate);
                     return (
-                      <div className="flex items-center gap-3">
-                        <div className="px-3.5 py-2 rounded-2xl bg-gray-100 dark:bg-obsidian-surface border border-gray-200 dark:border-obsidian-border text-center min-w-[64px]">
+                      <div className="flex items-center gap-2.5">
+                        <div className="px-3 py-2 rounded-2xl bg-gray-100 dark:bg-obsidian-surface border border-gray-200 dark:border-obsidian-border text-center min-w-[58px]">
                           <span className="text-lg font-black text-gold block leading-none">{cd.days}</span>
                           <span className="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-bold">Hari</span>
                         </div>
-                        <div className="px-3.5 py-2 rounded-2xl bg-gray-100 dark:bg-obsidian-surface border border-gray-200 dark:border-obsidian-border text-center min-w-[64px]">
-                          <span className="text-lg font-black text-gold block leading-none">{cd.hours}</span>
+                        <div className="px-3 py-2 rounded-2xl bg-gray-100 dark:bg-obsidian-surface border border-gray-200 dark:border-obsidian-border text-center min-w-[58px]">
+                          <span className="text-lg font-black text-gold block leading-none">{String(cd.hours).padStart(2, '0')}</span>
                           <span className="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-bold">Jam</span>
                         </div>
-                        <div className="px-3.5 py-2 rounded-2xl bg-gray-100 dark:bg-obsidian-surface border border-gray-200 dark:border-obsidian-border text-center min-w-[64px]">
-                          <span className="text-lg font-black text-gold block leading-none">{cd.minutes}</span>
+                        <div className="px-3 py-2 rounded-2xl bg-gray-100 dark:bg-obsidian-surface border border-gray-200 dark:border-obsidian-border text-center min-w-[58px]">
+                          <span className="text-lg font-black text-gold block leading-none">{String(cd.minutes).padStart(2, '0')}</span>
                           <span className="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-bold">Menit</span>
+                        </div>
+                        <div className="px-3 py-2 rounded-2xl bg-gray-100 dark:bg-obsidian-surface border border-gray-200 dark:border-obsidian-border text-center min-w-[58px]">
+                          <span className="text-lg font-black text-gold block leading-none">{String(cd.seconds).padStart(2, '0')}</span>
+                          <span className="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-bold">Detik</span>
                         </div>
                       </div>
                     );
@@ -305,7 +311,7 @@ export default function SchedulePage() {
                                 <MapPin className="w-3.5 h-3.5 text-gold" /> {ev.venueName}
                               </span>
                               <span className="flex items-center gap-1">
-                                <Clock className="w-3.5 h-3.5 text-gold" /> 19:00 WIB
+                                <Clock className="w-3.5 h-3.5 text-gold" /> {formatWibTime(ev.eventDate)}
                               </span>
                             </div>
                           </div>

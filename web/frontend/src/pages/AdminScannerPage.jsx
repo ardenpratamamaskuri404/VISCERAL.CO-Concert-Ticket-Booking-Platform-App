@@ -5,6 +5,7 @@ import AdminTopbar from '../components/AdminTopbar';
 import { ScanLine, CheckCircle2, XCircle, Search, ShieldCheck, Camera, CameraOff } from 'lucide-react';
 import api from '../api/axios';
 import { Scanner } from '@yudiel/react-qr-scanner';
+import { formatWibTime } from '../utils/date';
 
 // Helper for generating simple beep sounds using Web Audio API
 const playBeep = (type = 'success') => {
@@ -268,7 +269,7 @@ export default function AdminScannerPage() {
                             <div>
                               <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">Open Gate</span>
                               <span className="font-medium text-gray-600 dark:text-gray-300 text-sm">
-                                {new Date(new Date(scanResult.ticket.event.eventDate).getTime() - 60*60*1000).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
+                                {formatWibTime(scanResult.ticket.event.eventDate, -1)}
                               </span>
                             </div>
                           </>

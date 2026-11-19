@@ -5,18 +5,22 @@ import AdminTopbar from '../components/AdminTopbar';
 import { CheckCircle2, XCircle, Eye, ShieldCheck, RefreshCw, FileText } from 'lucide-react';
 
 export default function AdminVerificationPage() {
-  const { orders, approveOrder, rejectOrder, refunds, setRefunds } = useStore();
+  const { orders, approveOrder, rejectOrder, refunds, approveRefund, rejectRefund } = useStore();
   const [tab, setTab] = useState('ORDERS'); // 'ORDERS' or 'REFUNDS'
   const [selectedProof, setSelectedProof] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
 
-  const handleApproveRefund = (refundId) => {
-    setRefunds(prev => prev.map(r => r.id === refundId ? { ...r, status: 'APPROVED' } : r));
+  const handleApproveRefund = async (refundId) => {
+    if (window.confirm('Setujui pengajuan refund ini? Tiket akan dibatalkan dan kursi akan dilepas kembali.')) {
+      await approveRefund(refundId);
+    }
   };
 
-  const handleRejectRefund = (refundId) => {
-    setRefunds(prev => prev.map(r => r.id === refundId ? { ...r, status: 'REJECTED' } : r));
+  const handleRejectRefund = async (refundId) => {
+    if (window.confirm('Tolak pengajuan refund ini?')) {
+      await rejectRefund(refundId);
+    }
   };
 
   const filteredOrders = orders.filter(ord => {
@@ -48,7 +52,7 @@ export default function AdminVerificationPage() {
                   : 'bg-white dark:bg-obsidian-card text-gray-600 dark:text-gray-300 hover:text-gold'
               }`}
             >
-              Verifikasi Pembayaran Orders ({filteredOrders.length}) (FR-04)
+              Verifikasi Pembayaran Orders ({filteredOrders.length})
             </button>
 
             <button
@@ -59,7 +63,7 @@ export default function AdminVerificationPage() {
                   : 'bg-white dark:bg-obsidian-card text-gray-600 dark:text-gray-300 hover:text-gold'
               }`}
             >
-              Request Refund Customer ({refunds.length}) (Inovasi)
+              Request Refund Customer ({refunds.length})
             </button>
           </div>
 
@@ -210,7 +214,7 @@ export default function AdminVerificationPage() {
             /* Refund Requests Table */
             <div className="bg-white dark:bg-obsidian-card rounded-3xl border border-gray-200 dark:border-obsidian-border p-6 shadow-sm">
               <h3 className="text-base font-extrabold mb-4 pb-2 border-b border-gray-100 dark:border-obsidian-border">
-                Daftar Permohonan Refund Customer (Inovasi)
+                Daftar Permohonan Refund Customer
               </h3>
 
               <div className="overflow-x-auto">
@@ -222,16 +226,16 @@ export default function AdminVerificationPage() {
                       <th className="pb-3">Alasan Refund</th>
                       <th className="pb-3">Nominal</th>
                       <th className="pb-3">Status Refund</th>
-                      <th className="pb-3 text-right">Aksi Superadmin</th>
+                      <th className="pb-3 text-right">Aksi Admin</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-obsidian-border text-xs">
-                    {refunds.map((ref) => (
+                    {refunds.length > 0 ? refunds.map((ref) => (
                       <tr key={ref.id} className="hover:bg-gray-50 dark:hover:bg-obsidian-surface transition-colors">
                         <td className="py-4 font-mono font-bold text-gray-900 dark:text-white">{ref.orderNumber}</td>
                         <td className="py-4 font-bold">{ref.customerName}</td>
-                        <td className="py-4 text-gray-600 dark:text-gray-300">{ref.reason}</td>
-                        <td className="py-4 font-extrabold text-gold">Rp {ref.amount.toLocaleString('id-ID')}</td>
+                        <td className="py-4 text-gray-600 dark:text-gray-300 whitespace-pre-line">{ref.reason}</td>
+                        <td className="py-4 font-extrabold text-gold">Rp {Number(ref.amount || 0).toLocaleString('id-ID')}</td>
                         <td className="py-4">
                           <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase ${
                             ref.status === 'APPROVED' ? 'bg-green-500/20 text-green-500' : ref.status === 'REJECTED' ? 'bg-oxblood/20 text-oxblood' : 'bg-yellow-500/20 text-yellow-500'
@@ -258,7 +262,13 @@ export default function AdminVerificationPage() {
                           )}
                         </td>
                       </tr>
-                    ))}
+                    )) : (
+                      <tr>
+                        <td colSpan="6" className="py-10 text-center text-gray-500 font-bold">
+                          Belum ada permohonan refund dari customer.
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>

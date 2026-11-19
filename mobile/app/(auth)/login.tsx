@@ -9,7 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, sessionExpiredMessage, clearSessionExpiredMessage } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -44,10 +44,26 @@ export default function LoginScreen() {
 
     setLoading(true);
     setError('');
+    clearSessionExpiredMessage();
 
     const res = await login(email, password);
     
     setLoading(false);
+
+    if (res.success && res.requiresOtp) {
+      router.push({
+        pathname: '/(auth)/otp',
+        params: {
+          mode: 'LOGIN',
+          email: res.email || email.trim(),
+          password,
+          target: 'customer',
+          otpExpiresInSeconds: String(res.otpExpiresInSeconds || 300),
+          info: res.message || '',
+        },
+      });
+      return;
+    }
 
     if (res.success) {
       if (res.user?.role === 'ADMIN' || res.user?.role === 'SUPERADMIN') {
@@ -78,6 +94,12 @@ export default function LoginScreen() {
           <Text style={{ color: Colors.gold, fontSize: 32, fontWeight: '900', marginBottom: 8 }}>Masuk</Text>
           <Text style={{ color: Colors.textMuted, fontSize: 16 }}>Selamat datang kembali di VISCERAL.CO</Text>
         </View>
+
+        {sessionExpiredMessage ? (
+          <View style={{ backgroundColor: 'rgba(245, 158, 11, 0.15)', borderWidth: 1, borderColor: '#f59e0b', padding: 12, borderRadius: 12, marginBottom: 16 }}>
+            <Text style={{ color: '#fbbf24', fontSize: 12, fontWeight: '700' }}>{sessionExpiredMessage}</Text>
+          </View>
+        ) : null}
 
         {error ? (
           <View style={{ backgroundColor: Colors.oxblood, padding: 12, borderRadius: 12, marginBottom: 20 }}>

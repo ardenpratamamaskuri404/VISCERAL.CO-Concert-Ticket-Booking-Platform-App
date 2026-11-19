@@ -1,23 +1,29 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, Animated, Dimensions } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Colors } from '../../src/constants/theme';
+import { Colors, getThemeColors } from '../../src/constants/theme';
 import GoldButton from '../../src/components/GoldButton';
 import { Ionicons } from '@expo/vector-icons';
 import LottieView from 'lottie-react-native';
 import api from '../../src/api/axios';
+import { useApp } from '../../src/context/AppContext';
 
 const { width } = Dimensions.get('window');
 
 export default function OrderSuccessScreen() {
   const { orderId } = useLocalSearchParams();
   const router = useRouter();
+  const { fetchOrders, darkMode } = useApp();
+  const theme = getThemeColors(darkMode);
 
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const [ticketId, setTicketId] = useState<string | null>(null);
 
   useEffect(() => {
+    // Pastikan daftar tiket di Tab Tiket Saya langsung terbarui
+    fetchOrders();
+
     // Fetch order to get ticket ID for quick navigation
     api.get(`/orders/${orderId}`)
       .then(res => {
@@ -26,7 +32,7 @@ export default function OrderSuccessScreen() {
           setTicketId(order.tickets[0].id);
         }
       })
-      .catch(err => console.error('Error fetching order tickets', err));
+      .catch(err => console.warn('Error fetching order tickets', err));
     Animated.sequence([
       Animated.spring(scaleAnim, {
         toValue: 1,
@@ -43,7 +49,7 @@ export default function OrderSuccessScreen() {
   }, []);
 
   return (
-    <View style={{ flex: 1, backgroundColor: Colors.obsidian, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+    <View style={{ flex: 1, backgroundColor: theme.bg, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
       
       {/* Decorative success animation background */}
       <View style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, alignItems: 'center', justifyContent: 'center', opacity: 0.1 }}>
@@ -63,16 +69,16 @@ export default function OrderSuccessScreen() {
           </View>
         </View>
 
-        <Text style={{ color: Colors.gold, fontSize: 32, fontWeight: '900', marginBottom: 12, textAlign: 'center' }}>
+        <Text style={{ color: theme.gold, fontSize: 32, fontWeight: '900', marginBottom: 12, textAlign: 'center' }}>
           Pembayaran Berhasil!
         </Text>
         
-        <Text style={{ color: Colors.textMuted, fontSize: 16, textAlign: 'center', lineHeight: 24, marginBottom: 40 }}>
+        <Text style={{ color: theme.textMuted, fontSize: 16, textAlign: 'center', lineHeight: 24, marginBottom: 40 }}>
           Terima kasih telah memesan tiket di VISCERAL.CO.{'\n'}E-tiket Anda sudah siap.
         </Text>
       </Animated.View>
 
-      <Animated.View style={{ opacity: opacityAnim, width: '100%', gap: 16 }}>
+      <Animated.View style={{ opacity: opacityAnim, width: '100%', gap: 14 }}>
         <GoldButton 
           title="Lihat Barcode Tiket" 
           onPress={() => {
@@ -87,6 +93,12 @@ export default function OrderSuccessScreen() {
         <GoldButton 
           title="Daftar Semua Tiket Saya" 
           onPress={() => router.replace('/(tabs)/tickets')} 
+          variant="outline"
+          size="lg"
+        />
+        <GoldButton 
+          title="Kembali ke Beranda" 
+          onPress={() => router.replace('/(tabs)')} 
           variant="outline"
           size="lg"
         />
