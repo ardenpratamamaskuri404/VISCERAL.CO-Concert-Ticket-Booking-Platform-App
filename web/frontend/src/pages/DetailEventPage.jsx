@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useStore } from '../context/StoreContext';
 import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
 import { MapPin, Calendar, Clock, Sparkles, ShieldAlert, X, ShieldCheck, ChevronRight, Ticket, ArrowLeft } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import { getImageUrl } from '../utils/image';
@@ -295,6 +296,7 @@ export default function DetailEventPage() {
         </div>
       )}
 
+      <Footer />
     </div>
   );
 }
