@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowRight, MapPin, Calendar, Clock } from 'lucide-react';
 import { getImageUrl } from '../../utils/image';
+import { formatWibTime } from '../../utils/date';
 
 export default function FeaturedEventsSection({ events }) {
   return (
@@ -85,7 +86,7 @@ export default function FeaturedEventsSection({ events }) {
                     </div>
                     <div className="flex items-center gap-2">
                       <Clock className="w-4 h-4 text-gold" />
-                      <span className="font-medium">19:00 WIB</span>
+                      <span className="font-medium">{formatWibTime(event.eventDate || event.event_date)}</span>
                     </div>
                   </div>
                 </div>

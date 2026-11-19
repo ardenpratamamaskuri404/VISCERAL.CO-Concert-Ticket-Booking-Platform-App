@@ -363,7 +363,7 @@ export default function ScheduleTabScreen() {
                   {ev.title}
                 </Text>
                 <Text style={{ color: theme.textMuted, fontSize: 12, marginTop: 2 }} numberOfLines={1}>
-                  {d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB • {ev.venueName}
+                  {d.toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', hour12: false }).replace('.', ':')} WIB • {ev.venueName}
                 </Text>
                 {artistNames ? (
                   <Text style={{ color: theme.gold, fontSize: 11, fontWeight: '600', marginTop: 3 }} numberOfLines={1}>

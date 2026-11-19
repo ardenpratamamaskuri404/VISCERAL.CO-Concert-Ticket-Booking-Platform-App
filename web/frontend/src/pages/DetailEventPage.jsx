@@ -6,6 +6,7 @@ import Footer from '../components/Footer';
 import { MapPin, Calendar, Clock, Sparkles, ShieldAlert, X, ShieldCheck, ChevronRight, Ticket, ArrowLeft } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import { getImageUrl } from '../utils/image';
+import { formatWibTime } from '../utils/date';
 
 export default function DetailEventPage() {
   const { id } = useParams();
@@ -107,7 +108,7 @@ export default function DetailEventPage() {
               </div>
               <div>
                 <span className="text-[10px] text-gray-400 uppercase tracking-wider block">Waktu Open Gate</span>
-                <span className="text-xs font-bold">19:00 WIB</span>
+                <span className="text-xs font-bold">{formatWibTime(event.eventDate, -1)}</span>
               </div>
             </div>
           </div>

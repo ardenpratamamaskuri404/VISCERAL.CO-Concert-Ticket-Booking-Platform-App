@@ -65,7 +65,7 @@ export default function EventDetailScreen() {
   const handleCheckout = () => {
     if (!selectedCategory || !event) return;
     
-    if (event.isSeated && !selectedCategory.name.toUpperCase().includes('FESTIVAL')) {
+    if (event.isSeated && !isStandingCat(selectedCategory.name)) {
       // Go to seat selection
       router.push({
         pathname: `/seat-selection/${selectedCategory.id}`,

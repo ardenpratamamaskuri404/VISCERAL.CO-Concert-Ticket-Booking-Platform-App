@@ -5,6 +5,12 @@ import bcrypt from 'bcryptjs';
 import { sendOtpEmail } from '../services/email.service';
 import { authMiddleware } from '../middlewares/auth.middleware';
 import { OTP_EXPIRY_MINUTES, signSessionToken } from '../config/session';
+import {
+  getClientIp,
+  getLoginLockoutRemainingSeconds,
+  recordFailedLoginAttempt,
+  clearLoginAttempts,
+} from '../utils/loginRateLimit';
 
 const authRoutes = new Hono<{ Variables: { user: any } }>();
 
@@ -80,13 +86,49 @@ authRoutes.post('/login', async (c) => {
       return c.json({ error: 'Email dan Password wajib diisi!' }, 400);
     }
 
-    const user = await prisma.user.findUnique({ where: { email: String(email).trim() } });
+    const clientIp = getClientIp(c);
+    const normalizedEmail = String(email).trim();
+    const lockoutSeconds = getLoginLockoutRemainingSeconds(clientIp, normalizedEmail);
+    if (lockoutSeconds > 0) {
+      const waitMinutes = Math.ceil(lockoutSeconds / 60);
+      return c.json(
+        { error: `Terlalu banyak percobaan login gagal. Coba lagi dalam ${waitMinutes} menit.` },
+        429
+      );
+    }
+
+    const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (!user) {
+      const newlyLocked = recordFailedLoginAttempt(clientIp, normalizedEmail);
+      if (newlyLocked > 0) {
+        return c.json(
+          { error: 'Terlalu banyak percobaan login gagal. Akses dikunci sementara selama 15 menit.' },
+          429
+        );
+      }
       return c.json({ error: 'Email atau password salah!' }, 401);
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
+      const newlyLocked = recordFailedLoginAttempt(clientIp, normalizedEmail);
+      if (newlyLocked > 0) {
+        if (user.role === 'ADMIN' || user.role === 'SUPERADMIN') {
+          await prisma.auditLog.create({
+            data: {
+              userId: user.id,
+              action: 'LOGIN_LOCKED_OUT',
+              entityId: user.id,
+              metadata: { email: user.email, role: user.role, ip: clientIp, reason: '5x_wrong_password' },
+            },
+          }).catch(() => {});
+          io.emit('audit_logs_updated');
+        }
+        return c.json(
+          { error: 'Terlalu banyak percobaan login gagal. Akun dikunci sementara selama 15 menit.' },
+          429
+        );
+      }
       return c.json({ error: 'Email atau password salah!' }, 401);
     }
 
@@ -113,7 +155,18 @@ authRoutes.post('/verify-login-otp', async (c) => {
       return c.json({ error: 'Email dan kode OTP wajib diisi!' }, 400);
     }
 
-    const user = await prisma.user.findUnique({ where: { email: String(email).trim() } });
+    const clientIp = getClientIp(c);
+    const normalizedEmail = String(email).trim();
+    const lockoutSeconds = getLoginLockoutRemainingSeconds(clientIp, normalizedEmail);
+    if (lockoutSeconds > 0) {
+      const waitMinutes = Math.ceil(lockoutSeconds / 60);
+      return c.json(
+        { error: `Terlalu banyak percobaan gagal. Silakan coba lagi dalam ${waitMinutes} menit.` },
+        429
+      );
+    }
+
+    const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (!user || !user.otpCodeHash || !user.otpExpiresAt) {
       return c.json({ error: 'Sesi verifikasi OTP tidak ditemukan. Silakan login ulang.' }, 400);
     }
@@ -128,10 +181,18 @@ authRoutes.post('/verify-login-otp', async (c) => {
 
     const isOtpValid = await bcrypt.compare(String(otp).trim(), user.otpCodeHash);
     if (!isOtpValid) {
+      const newlyLocked = recordFailedLoginAttempt(clientIp, normalizedEmail);
+      if (newlyLocked > 0) {
+        return c.json(
+          { error: 'Terlalu banyak percobaan OTP gagal. Akses dikunci sementara selama 15 menit.' },
+          429
+        );
+      }
       return c.json({ error: 'Kode OTP tidak sesuai. Periksa kembali inbox email Anda.' }, 401);
     }
 
-    // Hapus OTP setelah berhasil dipakai (one-time use)
+    // Reset rate limit & hapus OTP setelah berhasil dipakai (one-time use)
+    clearLoginAttempts(clientIp, normalizedEmail);
     await prisma.user.update({
       where: { id: user.id },
       data: { otpCodeHash: null, otpExpiresAt: null },
@@ -185,13 +246,26 @@ authRoutes.post('/resend-login-otp', async (c) => {
       return c.json({ error: 'Email dan Password wajib disertakan untuk kirim ulang OTP.' }, 400);
     }
 
-    const user = await prisma.user.findUnique({ where: { email: String(email).trim() } });
+    const clientIp = getClientIp(c);
+    const normalizedEmail = String(email).trim();
+    const lockoutSeconds = getLoginLockoutRemainingSeconds(clientIp, normalizedEmail);
+    if (lockoutSeconds > 0) {
+      const waitMinutes = Math.ceil(lockoutSeconds / 60);
+      return c.json(
+        { error: `Terlalu banyak percobaan gagal. Silakan coba lagi dalam ${waitMinutes} menit.` },
+        429
+      );
+    }
+
+    const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (!user) {
+      recordFailedLoginAttempt(clientIp, normalizedEmail);
       return c.json({ error: 'Akun tidak ditemukan.' }, 401);
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
+      recordFailedLoginAttempt(clientIp, normalizedEmail);
       return c.json({ error: 'Kredensial tidak valid.' }, 401);
     }
 

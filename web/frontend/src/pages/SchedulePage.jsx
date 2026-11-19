@@ -4,6 +4,7 @@ import { useStore } from '../context/StoreContext';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { getImageUrl } from '../utils/image';
+import { formatWibTime } from '../utils/date';
 import { motion } from 'framer-motion';
 import { Calendar, Clock, MapPin, Ticket, ArrowRight, Sparkles, ShieldAlert } from 'lucide-react';
 
@@ -146,7 +147,7 @@ export default function SchedulePage() {
                     </span>
                     <span className="flex items-center gap-1.5">
                       <Clock className="w-4 h-4 text-gold" />
-                      19:00 WIB
+                      {formatWibTime(nextUpcomingEvent.eventDate)}
                     </span>
                   </div>
                 </div>
@@ -310,7 +311,7 @@ export default function SchedulePage() {
                                 <MapPin className="w-3.5 h-3.5 text-gold" /> {ev.venueName}
                               </span>
                               <span className="flex items-center gap-1">
-                                <Clock className="w-3.5 h-3.5 text-gold" /> 19:00 WIB
+                                <Clock className="w-3.5 h-3.5 text-gold" /> {formatWibTime(ev.eventDate)}
                               </span>
                             </div>
                           </div>

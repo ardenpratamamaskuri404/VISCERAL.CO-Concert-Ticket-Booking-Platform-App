@@ -8,6 +8,8 @@ export default function AdminEventModal({
   title, setTitle,
   venue, setVenue,
   eventDate, setEventDate,
+  isSeated = true, setIsSeated,
+  canConfigureSeating = false,
   description, setDescription,
   bannerFile, setBannerFile,
   categories, setCategories,
@@ -69,6 +71,41 @@ export default function AdminEventModal({
               />
             </div>
           </div>
+
+          {canConfigureSeating && setIsSeated && (
+            <div>
+              <label className="block text-xs font-bold mb-1.5">Tipe Area / Kursi (Khusus Superadmin)</label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsSeated(true)}
+                  className={`p-3 rounded-xl border text-left transition-all ${
+                    isSeated
+                      ? 'bg-gold/10 border-gold text-gray-900 dark:text-white'
+                      : 'bg-gray-50 dark:bg-obsidian-surface border-gray-200 dark:border-obsidian-border text-gray-500 dark:text-gray-400'
+                  }`}
+                >
+                  <div className="text-xs font-extrabold">Seated (Pilih Kursi)</div>
+                  <div className="text-[11px] opacity-80 mt-0.5">Penonton memilih nomor kursi pada denah</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsSeated(false)}
+                  className={`p-3 rounded-xl border text-left transition-all ${
+                    !isSeated
+                      ? 'bg-gold/10 border-gold text-gray-900 dark:text-white'
+                      : 'bg-gray-50 dark:bg-obsidian-surface border-gray-200 dark:border-obsidian-border text-gray-500 dark:text-gray-400'
+                  }`}
+                >
+                  <div className="text-xs font-extrabold">Standing (Area Bebas)</div>
+                  <div className="text-[11px] opacity-80 mt-0.5">Penonton bebas berdiri & hanya pilih jumlah tiket</div>
+                </button>
+              </div>
+              <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1.5">
+                Catatan: Kategori bernama Standing, Festival, General, Presale, Pass, atau GA otomatis menjadi area berdiri.
+              </p>
+            </div>
+          )}
 
           <div>
             <label className="block text-xs font-bold mb-1 flex items-center gap-2">

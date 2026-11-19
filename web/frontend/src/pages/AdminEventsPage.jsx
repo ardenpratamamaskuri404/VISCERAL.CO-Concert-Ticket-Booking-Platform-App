@@ -7,7 +7,8 @@ import AdminEventsTable from '../components/AdminEventsTable';
 import AdminEventModal from '../components/AdminEventModal';
 
 export default function AdminEventsPage() {
-  const { artists, createEvent, updateEvent } = useStore();
+  const { artists, createEvent, updateEvent, currentUser } = useStore();
+  const isSuperAdmin = currentUser?.role === 'SUPERADMIN';
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -18,6 +19,7 @@ export default function AdminEventsPage() {
   const [venue, setVenue] = useState('');
   const [description, setDescription] = useState('');
   const [eventDate, setEventDate] = useState('');
+  const [isSeated, setIsSeated] = useState(true);
   const [bannerFile, setBannerFile] = useState(null);
   const [selectedArtistIds, setSelectedArtistIds] = useState([]);
 
@@ -36,6 +38,7 @@ export default function AdminEventsPage() {
     setVenue('');
     setDescription('');
     setEventDate('');
+    setIsSeated(true);
     setBannerFile(null);
     setSelectedArtistIds([]);
     setSelectedEvent(null);
@@ -81,7 +84,7 @@ export default function AdminEventsPage() {
     formData.append('venueName', venue);
     formData.append('description', description || 'Konser spektakuler');
     formData.append('eventDate', eventDate || new Date().toISOString());
-    formData.append('isSeated', 'true');
+    formData.append('isSeated', isSuperAdmin ? String(isSeated) : 'true');
     formData.append('categories', JSON.stringify(formattedCategories));
     formData.append('artistIds', JSON.stringify(selectedArtistIds));
     
@@ -105,6 +108,7 @@ export default function AdminEventsPage() {
     const dt = new Date(ev.eventDate);
     const localIso = new Date(dt.getTime() - dt.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
     setEventDate(localIso);
+    setIsSeated(ev.isSeated ?? true);
     setSelectedArtistIds(ev.artists?.map((ea) => ea.artistId) || []);
     setBannerFile(null);
     setEditModalOpen(true);
@@ -119,6 +123,9 @@ export default function AdminEventsPage() {
     formData.append('venueName', venue);
     formData.append('description', description);
     formData.append('eventDate', eventDate || new Date().toISOString());
+    if (isSuperAdmin) {
+      formData.append('isSeated', String(isSeated));
+    }
     formData.append('artistIds', JSON.stringify(selectedArtistIds));
     
     if (bannerFile) {
@@ -172,6 +179,8 @@ export default function AdminEventsPage() {
         title={title} setTitle={setTitle}
         venue={venue} setVenue={setVenue}
         eventDate={eventDate} setEventDate={setEventDate}
+        isSeated={isSeated} setIsSeated={setIsSeated}
+        canConfigureSeating={isSuperAdmin}
         description={description} setDescription={setDescription}
         bannerFile={bannerFile} setBannerFile={setBannerFile}
         categories={categories} setCategories={setCategories}
@@ -191,6 +200,8 @@ export default function AdminEventsPage() {
         title={title} setTitle={setTitle}
         venue={venue} setVenue={setVenue}
         eventDate={eventDate} setEventDate={setEventDate}
+        isSeated={isSeated} setIsSeated={setIsSeated}
+        canConfigureSeating={isSuperAdmin}
         description={description} setDescription={setDescription}
         bannerFile={bannerFile} setBannerFile={setBannerFile}
         categories={categories} setCategories={setCategories}

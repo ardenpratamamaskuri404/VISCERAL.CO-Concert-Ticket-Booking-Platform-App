@@ -278,6 +278,9 @@ eventsRoutes.put('/:id', authMiddleware, async (c) => {
     const description = body['description'] as string;
     const eventDateStr = body['eventDate'] as string;
     const bannerFile = body['bannerFile'] as File;
+    const isSeatedRaw = body['isSeated'];
+    const hasIsSeated = isSeatedRaw !== undefined && isSeatedRaw !== null && isSeatedRaw !== '';
+    const isSeatedVal = isSeatedRaw === 'true' || String(isSeatedRaw) === 'true';
 
     let parsedArtists: Array<{ artistId: string; isHeadliner?: boolean }> | null = null;
     if (body['artistIds'] !== undefined) {
@@ -331,6 +334,7 @@ eventsRoutes.put('/:id', authMiddleware, async (c) => {
         ...(venueName && { venueName }),
         ...(description && { description }),
         ...(eventDateStr && { eventDate: new Date(eventDateStr) }),
+        ...(hasIsSeated && { isSeated: isSeatedVal }),
         ...(bannerUrl && { bannerUrl })
       },
       include: {

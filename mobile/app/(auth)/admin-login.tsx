@@ -101,7 +101,7 @@ export default function AdminLoginScreen() {
                 borderColor: 'rgba(239, 68, 68, 0.3)',
                 fontSize: 16
               }}
-              placeholder="admin@visceral.co"
+              placeholder="Masukkan email otorisasi"
               placeholderTextColor="rgba(255,255,255,0.3)"
               value={email}
               onChangeText={setEmail}

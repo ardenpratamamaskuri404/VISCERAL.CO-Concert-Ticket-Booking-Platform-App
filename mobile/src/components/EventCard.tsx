@@ -24,10 +24,14 @@ export default function EventCard({ event, onPress, variant = 'featured' }: Even
     month: 'short',
     year: 'numeric',
   });
-  const formattedTime = eventDate.toLocaleTimeString('id-ID', {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  const formattedTime = eventDate
+    .toLocaleTimeString('id-ID', {
+      timeZone: 'Asia/Jakarta',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    })
+    .replace('.', ':');
 
   const lowestPrice = event.categories?.length
     ? Math.min(...event.categories.map((c) => Number(c.price)))
