@@ -450,6 +450,30 @@ ordersRoutes.post('/:id/generate-doku', authMiddleware, async (c) => {
   }
 });
 
+const normalizeDokuChannel = (raw?: string | null, fallback?: string | null): string => {
+  const val = String(raw || fallback || 'DOKU_CHECKOUT').toUpperCase().trim();
+  const mapping: Record<string, string> = {
+    EMONEY_DANA: 'DANA',
+    DANA: 'DANA',
+    EMONEY_SHOPEEPAY: 'SHOPEEPAY',
+    SHOPEEPAY: 'SHOPEEPAY',
+    EMONEY_OVO: 'OVO',
+    OVO: 'OVO',
+    QRIS: 'DOKU_QRIS',
+    DOKU_QRIS: 'DOKU_QRIS',
+    VIRTUAL_ACCOUNT_BCA: 'BCA_VA',
+    BCA_VA: 'BCA_VA',
+    VIRTUAL_ACCOUNT_BANK_MANDIRI: 'MANDIRI_VA',
+    VIRTUAL_ACCOUNT_MANDIRI: 'MANDIRI_VA',
+    MANDIRI_VA: 'MANDIRI_VA',
+    VIRTUAL_ACCOUNT_BRI: 'BRI_VA',
+    BRI_VA: 'BRI_VA',
+    VIRTUAL_ACCOUNT_BNI: 'BNI_VA',
+    BNI_VA: 'BNI_VA',
+  };
+  return mapping[val] || val;
+};
+
 // Doku Webhook Callback (Dipanggil oleh server Doku)
 ordersRoutes.post('/doku-webhook', async (c) => {
   try {
@@ -470,6 +494,14 @@ ordersRoutes.post('/doku-webhook', async (c) => {
         return c.json({ message: 'OK' }, 200);
       }
 
+      const detectedChannel = normalizeDokuChannel(
+        bodyJson.channel?.id ||
+          bodyJson.transaction?.channel ||
+          bodyJson.payment?.channel ||
+          bodyJson.service?.id,
+        order.paymentChannel || order.paymentMethod
+      );
+
       const txStatus = String(
         bodyJson.transaction?.status || bodyJson.payment?.status || 'SUCCESS'
       ).toUpperCase();
@@ -489,7 +521,7 @@ ordersRoutes.post('/doku-webhook', async (c) => {
           data: {
             status: nextStatus,
             dokuReferenceId: bodyJson.transaction?.doku_transaction_id || requestIdHeader,
-            paymentChannel: bodyJson.transaction?.channel || order.paymentChannel || 'DOKU_CHECKOUT',
+            paymentChannel: detectedChannel,
           },
         });
 
@@ -525,7 +557,7 @@ ordersRoutes.post('/doku-webhook', async (c) => {
         data: { 
           status: 'PAID',
           dokuReferenceId: bodyJson.transaction?.doku_transaction_id || requestIdHeader,
-          paymentChannel: bodyJson.transaction?.channel || 'DOKU_CHECKOUT'
+          paymentChannel: detectedChannel
         }
       });
 

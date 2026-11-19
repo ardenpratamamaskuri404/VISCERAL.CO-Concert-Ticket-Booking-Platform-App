@@ -49,14 +49,28 @@ export default function AdminDashboardPage() {
   if (isSuperadmin) {
     const methodCounts = {};
     filteredOrders.filter(o => o.status === 'PAID').forEach(o => {
-      const method = o.paymentChannel || o.paymentMethod || 'Lainnya';
-      methodCounts[method] = (methodCounts[method] || 0) + 1;
+      const raw = (o.paymentChannel && o.paymentChannel !== 'DOKU_CHECKOUT')
+        ? o.paymentChannel
+        : (o.paymentMethod || o.paymentChannel || 'Lainnya');
+      const label = String(raw).replace(/_/g, ' ');
+      methodCounts[label] = (methodCounts[label] || 0) + 1;
     });
     for (const [key, value] of Object.entries(methodCounts)) {
       paymentMethodsData.push({ name: key, value });
     }
   }
-  const COLORS = ['#D4AF37', '#8B0000', '#2563EB', '#10B981', '#F59E0B'];
+  const COLORS = [
+    '#D4AF37',
+    '#8B0000',
+    '#2563EB',
+    '#10B981',
+    '#F59E0B',
+    '#8B5CF6',
+    '#EC4899',
+    '#06B6D4',
+    '#84CC16',
+    '#F97316',
+  ];
 
   // 2. Daily Revenue (Bar Chart)
   const dailyRevenueData = [];
