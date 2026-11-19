@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, ScrollView, RefreshControl, TouchableOpacity, FlatList, TextInput, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors, getThemeColors } from '../../src/constants/theme';
@@ -18,6 +18,31 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedArtistId, setSelectedArtistId] = useState<string | null>(null);
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const nextUpcomingEvent = useMemo(() => {
+    const published = [...events]
+      .filter((e) => e.status === 'PUBLISHED')
+      .sort((a, b) => new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime());
+    return published.find((e) => new Date(e.eventDate) > now && !e.salesClosed) || published[0];
+  }, [events, now]);
+
+  const nextCountdown = useMemo(() => {
+    if (!nextUpcomingEvent) return null;
+    const diff = new Date(nextUpcomingEvent.eventDate).getTime() - now.getTime();
+    if (diff <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0 };
+    return {
+      days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+      hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
+      minutes: Math.floor((diff / (1000 * 60)) % 60),
+      seconds: Math.floor((diff / 1000) % 60),
+    };
+  }, [nextUpcomingEvent, now]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -49,12 +74,20 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        <TouchableOpacity 
-          onPress={() => router.push('/chat')}
-          style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border, alignItems: 'center', justifyContent: 'center' }}
-        >
-          <Ionicons name="chatbubble-ellipses" size={20} color={theme.gold} />
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <TouchableOpacity
+            onPress={() => router.push('/(tabs)/schedule')}
+            style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border, alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Ionicons name="calendar-outline" size={20} color={theme.gold} />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            onPress={() => router.push('/chat')}
+            style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border, alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Ionicons name="chatbubble-ellipses" size={20} color={theme.gold} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView 
@@ -82,6 +115,63 @@ export default function HomeScreen() {
             />
           </View>
         </View>
+
+        {/* Live Countdown Card + Link ke Jadwal Lengkap */}
+        {!searchQuery && !selectedArtistId && nextUpcomingEvent && nextCountdown && (
+          <View style={{ paddingHorizontal: 24, marginBottom: 24 }}>
+            <TouchableOpacity
+              activeOpacity={0.9}
+              onPress={() => router.push('/(tabs)/schedule')}
+              style={{
+                backgroundColor: theme.card,
+                borderRadius: 20,
+                padding: 16,
+                borderWidth: 1,
+                borderColor: Colors.gold,
+              }}
+            >
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <Text style={{ color: theme.gold, fontSize: 10, fontWeight: '900', letterSpacing: 1 }}>
+                  KONSER TERDEKAT • LIVE COUNTDOWN
+                </Text>
+                <Text style={{ color: theme.gold, fontSize: 11, fontWeight: '700' }}>
+                  Lihat Jadwal →
+                </Text>
+              </View>
+              <Text style={{ color: theme.text, fontSize: 15, fontWeight: '800', marginBottom: 12 }} numberOfLines={1}>
+                {nextUpcomingEvent.title}
+              </Text>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                {[
+                  { label: 'Hari', val: nextCountdown.days },
+                  { label: 'Jam', val: nextCountdown.hours },
+                  { label: 'Menit', val: nextCountdown.minutes },
+                  { label: 'Detik', val: nextCountdown.seconds },
+                ].map((box) => (
+                  <View
+                    key={box.label}
+                    style={{
+                      flex: 1,
+                      backgroundColor: theme.surface,
+                      borderRadius: 12,
+                      paddingVertical: 8,
+                      alignItems: 'center',
+                      borderWidth: 1,
+                      borderColor: theme.border,
+                    }}
+                  >
+                    <Text style={{ color: theme.gold, fontSize: 16, fontWeight: '900' }}>
+                      {String(box.val).padStart(2, '0')}
+                    </Text>
+                    <Text style={{ color: theme.textMuted, fontSize: 9, fontWeight: '700' }}>
+                      {box.label}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Live Artists Lineup Filter */}
         {artists.length > 0 && (

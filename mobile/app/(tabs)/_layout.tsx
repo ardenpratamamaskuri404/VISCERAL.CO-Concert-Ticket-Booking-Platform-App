@@ -50,6 +50,7 @@ function CustomTabBar({ state, descriptors, navigation, unreadNotifCount, darkMo
 
           let iconName: any = 'home';
           if (route.name === 'index') iconName = isFocused ? 'home' : 'home-outline';
+          if (route.name === 'schedule') iconName = isFocused ? 'calendar' : 'calendar-outline';
           if (route.name === 'tickets') iconName = isFocused ? 'ticket' : 'ticket-outline';
           if (route.name === 'profile') iconName = isFocused ? 'person' : 'person-outline';
 
@@ -111,6 +112,12 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Beranda',
+        }}
+      />
+      <Tabs.Screen
+        name="schedule"
+        options={{
+          title: 'Jadwal',
         }}
       />
       <Tabs.Screen
