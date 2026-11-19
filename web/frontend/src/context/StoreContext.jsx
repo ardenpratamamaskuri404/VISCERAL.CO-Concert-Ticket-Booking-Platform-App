@@ -314,11 +314,29 @@ export const StoreProvider = ({ children }) => {
   }, [fetchEvents, fetchArtists, fetchOrders, fetchRefunds, fetchUsers, fetchAuditLogs, fetchNotifications]);
 
   const markAllNotificationsRead = async () => {
-    setAdminNotifications((prev) => prev.map(n => ({ ...n, read: true })));
+    setAdminNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     setUnreadCount(0);
     setUnreadNotificationCount(0);
     try {
       await api.put('/notifications/read-all');
+    } catch (e) {}
+  };
+
+  const markSingleNotificationRead = async (notifId) => {
+    let wasUnread = false;
+    setAdminNotifications((prev) =>
+      prev.map((n) => {
+        if (n.id === notifId) {
+          if (!n.read) wasUnread = true;
+          return { ...n, read: true };
+        }
+        return n;
+      })
+    );
+    setUnreadCount((prev) => Math.max(0, prev - (wasUnread ? 1 : 1)));
+    setUnreadNotificationCount((prev) => Math.max(0, prev - 1));
+    try {
+      await api.put(`/notifications/${notifId}/read`);
     } catch (e) {}
   };
 
@@ -733,6 +751,7 @@ export const StoreProvider = ({ children }) => {
       adminNotifications,
       unreadCount,
       markAllNotificationsRead,
+      markSingleNotificationRead,
       auditLogs,
       fetchAuditLogs,
       users,

@@ -133,15 +133,10 @@ export default function AdminTopbar({ title = 'Dashboard Monitoring' }) {
         <h1 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white tracking-tight truncate">
           {title}
         </h1>
-        {isSuperadmin ? (
+        {isSuperadmin && (
           <span className="hidden sm:inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-gold/15 text-oxblood dark:text-gold border border-gold/40 items-center gap-1 shrink-0">
             <Sparkles className="w-3 h-3" />
             SUPERADMIN MODE
-          </span>
-        ) : (
-          <span className="hidden sm:inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30 items-center gap-1 shrink-0">
-            <ShieldCheck className="w-3 h-3" />
-            STAFF ADMIN
           </span>
         )}
       </div>

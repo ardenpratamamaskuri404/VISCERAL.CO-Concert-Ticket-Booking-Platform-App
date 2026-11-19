@@ -100,8 +100,8 @@ export default function AdminNotificationsPage() {
     currentUser,
     adminNotifications,
     auditLogs,
-    setUnreadNotificationCount,
     markAllNotificationsRead,
+    markSingleNotificationRead,
   } = useStore();
 
   const [notifications, setNotifications] = useState([]);
@@ -146,27 +146,16 @@ export default function AdminNotificationsPage() {
   }, [fetchNotifications, adminNotifications.length, auditLogs.length]);
 
   const markAllAsRead = async () => {
-    try {
-      await api.put('/notifications/read-all');
-      setUnreadNotificationCount(0);
-      markAllNotificationsRead();
-      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-    } catch (error) {
-      console.error('Failed to mark all as read', error);
-    }
+    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    await markAllNotificationsRead();
   };
 
   const markSingleRead = async (notif) => {
     if (notif.isRead || notif.type === 'AUDIT_LOG') return;
-    try {
-      await api.put(`/notifications/${notif.rawId}/read`);
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === notif.id ? { ...n, isRead: true } : n))
-      );
-      setUnreadNotificationCount((prev) => Math.max(0, prev - 1));
-    } catch (error) {
-      console.error('Failed to mark notification as read', error);
-    }
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === notif.id ? { ...n, isRead: true } : n))
+    );
+    await markSingleNotificationRead(notif.rawId);
   };
 
   const stats = useMemo(() => {

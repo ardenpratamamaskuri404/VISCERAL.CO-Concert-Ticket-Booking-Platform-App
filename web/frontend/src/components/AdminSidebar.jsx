@@ -45,15 +45,11 @@ export default function AdminSidebar() {
               <h1 className="font-extrabold text-lg tracking-wide leading-none text-gray-900 dark:text-white">
                 VISCERAL<span className="text-gold">.CO</span>
               </h1>
-              <span
-                className={`text-[10px] font-extrabold tracking-[0.18em] uppercase block mt-1.5 ${
-                  isSuperadmin
-                    ? 'text-oxblood dark:text-gold'
-                    : 'text-oxblood dark:text-red-400'
-                }`}
-              >
-                {isSuperadmin ? 'Superadmin Panel' : 'Admin Panel'}
-              </span>
+              {isSuperadmin && (
+                <span className="text-[10px] text-oxblood dark:text-gold font-extrabold tracking-[0.18em] uppercase block mt-1.5">
+                  Admin Panel
+                </span>
+              )}
             </div>
           </Link>
         </div>
