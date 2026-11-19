@@ -214,8 +214,17 @@ export default function AdminDashboardPage() {
                         <Tooltip 
                           contentStyle={{ backgroundColor: '#1A1A1A', borderColor: '#333', borderRadius: '12px', fontSize: '12px' }}
                           itemStyle={{ color: '#fff' }}
+                          formatter={(val, name) => [`${val} transaksi`, name]}
                         />
-                        <Legend wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }} />
+                        <Legend
+                          wrapperStyle={{ fontSize: '11px', fontWeight: 'bold' }}
+                          formatter={(value, entry) => {
+                            const total = paymentMethodsData.reduce((acc, item) => acc + item.value, 0);
+                            const count = entry?.payload?.value ?? 0;
+                            const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+                            return `${value} (${count} • ${pct}%)`;
+                          }}
+                        />
                       </PieChart>
                     </ResponsiveContainer>
                   ) : (
