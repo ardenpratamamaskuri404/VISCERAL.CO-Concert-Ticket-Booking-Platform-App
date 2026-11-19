@@ -1,13 +1,29 @@
 import React, { useEffect } from 'react';
-import { Stack } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { AuthProvider } from '../src/context/AuthContext';
+import { AuthProvider, useAuth } from '../src/context/AuthContext';
 import { AppProvider } from '../src/context/AppContext';
 import { Colors } from '../src/constants/theme';
 import * as SplashScreen from 'expo-splash-screen';
 
 SplashScreen.preventAutoHideAsync();
+
+function SessionRedirectGuard() {
+  const { isLoggedIn, isLoading, sessionExpiredMessage } = useAuth();
+  const segments = useSegments();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isLoading) return;
+    const inAuthGroup = segments[0] === '(auth)';
+    if (!isLoggedIn && sessionExpiredMessage && !inAuthGroup) {
+      router.replace('/(auth)/login');
+    }
+  }, [isLoggedIn, isLoading, sessionExpiredMessage, segments, router]);
+
+  return null;
+}
 
 export default function RootLayout() {
   useEffect(() => {
@@ -22,6 +38,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AuthProvider>
         <AppProvider>
+          <SessionRedirectGuard />
           <StatusBar style="light" />
           <Stack
             screenOptions={{

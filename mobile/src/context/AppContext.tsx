@@ -63,8 +63,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       if (res.data?.data) {
         setEvents(res.data.data);
       }
-    } catch (e) {
-      console.error('Failed to fetch events:', e);
+    } catch (e: any) {
+      console.warn('Failed to fetch events:', e?.message || e);
     }
   }, []);
 
@@ -74,8 +74,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       if (res.data?.data) {
         setArtists(res.data.data);
       }
-    } catch (e) {
-      console.error('Failed to fetch artists:', e);
+    } catch (e: any) {
+      console.warn('Failed to fetch artists:', e?.message || e);
     }
   }, []);
 
@@ -91,8 +91,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       if (res.data?.data) {
         setOrders(res.data.data);
       }
-    } catch (e) {
-      console.error('Failed to fetch orders:', e);
+    } catch (e: any) {
+      console.warn('Failed to fetch orders:', e?.message || e);
     }
   }, []);
 
@@ -105,8 +105,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         const unread = res.data.notifications.filter((n: Notification) => !n.isRead).length;
         setUnreadNotifCount(unread);
       }
-    } catch (e) {
-      console.error('Failed to fetch notifications:', e);
+    } catch (e: any) {
+      console.warn('Failed to fetch notifications:', e?.message || e);
     }
   }, []);
 
@@ -117,8 +117,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       if (res.data?.success) {
         setChatMessages(res.data.chats);
       }
-    } catch (e) {
-      console.error('Failed to fetch chat messages:', e);
+    } catch (e: any) {
+      console.warn('Failed to fetch chat messages:', e?.message || e);
     }
   }, []);
 
