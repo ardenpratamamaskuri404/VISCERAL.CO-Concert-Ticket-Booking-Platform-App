@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Platform } from 'react-native';
-import { Tabs } from 'expo-router';
+import { Tabs, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../src/constants/theme';
 import { useApp } from '../../src/context/AppContext';
@@ -8,11 +8,14 @@ import { useApp } from '../../src/context/AppContext';
 const { width } = Dimensions.get('window');
 
 function CustomTabBar({ state, descriptors, navigation, unreadNotifCount }: any) {
+  const router = useRouter();
+  if (!state?.routes) return null;
+
   return (
     <View style={styles.tabBarContainer}>
       <View style={styles.tabBar}>
         {state.routes.map((route: any, index: number) => {
-          const { options } = descriptors[route.key];
+          const { options } = descriptors?.[route.key] || { options: {} };
           const label =
             options.tabBarLabel !== undefined
               ? options.tabBarLabel
@@ -23,14 +26,19 @@ function CustomTabBar({ state, descriptors, navigation, unreadNotifCount }: any)
           const isFocused = state.index === index;
 
           const onPress = () => {
-            const event = navigation.emit({
-              type: 'tabPress',
-              target: route.key,
-              canPreventDefault: true,
-            });
+            if (navigation?.emit) {
+              const event = navigation.emit({
+                type: 'tabPress',
+                target: route.key,
+                canPreventDefault: true,
+              });
 
-            if (!isFocused && !event.defaultPrevented) {
-              navigation.navigate(route.name);
+              if (!isFocused && !event.defaultPrevented) {
+                navigation.navigate(route.name);
+              }
+            } else if (!isFocused) {
+              const targetPath = route.name === 'index' ? '/(tabs)' : `/(tabs)/${route.name}`;
+              router.navigate(targetPath as any);
             }
           };
 

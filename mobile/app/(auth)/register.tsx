@@ -50,9 +50,24 @@ export default function RegisterScreen() {
     setLoading(true);
     setError('');
 
-    const res = await register({ fullName, email, phoneNumber, password });
+    const res = await register({ fullName, email: email.trim(), phoneNumber, password });
     
     setLoading(false);
+
+    if (res.success && res.requiresOtp) {
+      router.push({
+        pathname: '/(auth)/otp',
+        params: {
+          mode: 'LOGIN',
+          email: res.email || email.trim(),
+          password,
+          target: 'customer',
+          otpExpiresInSeconds: String(res.otpExpiresInSeconds || 300),
+          info: res.message || '',
+        },
+      });
+      return;
+    }
 
     if (res.success) {
       router.replace('/(tabs)');

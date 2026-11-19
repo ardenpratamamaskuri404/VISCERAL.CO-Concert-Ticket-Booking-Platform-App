@@ -48,29 +48,22 @@ authRoutes.post('/register', async (c) => {
     const user = await prisma.user.create({
       data: {
         fullName,
-        email,
+        email: String(email).trim(),
         password: hashedPassword,
         phoneNumber,
         role: 'CUSTOMER'
       }
     });
 
-    const session = signSessionToken({ id: user.id, role: user.role });
+    const { expiresInSeconds } = await generateAndSendLoginOtp(user);
 
     io.emit('users_updated', { action: 'register', userId: user.id });
 
     return c.json({
-      message: 'Registrasi berhasil',
-      token: session.token,
-      expiresAt: session.expiresAt,
-      expiresInSeconds: session.expiresInSeconds,
-      expiresInHours: session.expiresInHours,
-      user: {
-        id: user.id,
-        fullName: user.fullName,
-        email: user.email,
-        role: user.role
-      }
+      requiresOtp: true,
+      email: user.email,
+      otpExpiresInSeconds: expiresInSeconds,
+      message: `Registrasi berhasil. Kode OTP 6 digit telah dikirim ke ${user.email}.`
     });
   } catch (error: any) {
     console.error('Register Error:', error);

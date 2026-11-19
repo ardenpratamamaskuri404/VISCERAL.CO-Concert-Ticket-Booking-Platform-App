@@ -92,7 +92,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<LoginResult>;
   verifyLoginOtp: (email: string, otp: string) => Promise<VerifyOtpResult>;
   resendLoginOtp: (email: string, password: string) => Promise<{ success: boolean; otpExpiresInSeconds?: number; message?: string; error?: string }>;
-  register: (data: RegisterData) => Promise<{ success: boolean; error?: string }>;
+  register: (data: RegisterData) => Promise<LoginResult>;
   logout: () => Promise<void>;
   updateUser: (user: User) => Promise<void>;
 }
@@ -273,12 +273,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const register = async (data: RegisterData) => {
+  const register = async (data: RegisterData): Promise<LoginResult> => {
     try {
       const res = await api.post('/auth/register', data);
+      if (res.data?.requiresOtp) {
+        return {
+          success: true,
+          requiresOtp: true,
+          email: res.data.email || data.email.trim(),
+          otpExpiresInSeconds: res.data.otpExpiresInSeconds || 300,
+          message: res.data.message,
+        };
+      }
       const { token: newToken, user, expiresAt } = res.data;
       await persistSession(newToken, user, expiresAt);
-      return { success: true };
+      return { success: true, user };
     } catch (e: any) {
       const msg = e.response?.data?.error || 'Registrasi gagal. Coba lagi.';
       return { success: false, error: msg };
