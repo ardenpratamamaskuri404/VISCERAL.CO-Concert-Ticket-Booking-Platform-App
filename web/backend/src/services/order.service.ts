@@ -186,7 +186,7 @@ export const calculateOrderCheckout = async (eventId: string, tickets: any[]) =>
 
           if (lockAttempt.count === 0) {
             throw new CheckoutValidationError(
-              `Kursi ${t.seatNumber} baru saja dikunci atau dibeli pengguna lain.`,
+              `Kursi ${t.seatNumber} tidak lagi tersedia karena telah dipilih atau dibeli oleh pengunjung lain. Silakan pilih kursi lain yang masih tersedia.`,
               409
             );
           }

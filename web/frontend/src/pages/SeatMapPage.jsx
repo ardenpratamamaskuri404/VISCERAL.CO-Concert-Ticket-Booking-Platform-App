@@ -32,6 +32,8 @@ export default function SeatMapPage() {
   const [standingQty, setStandingQty] = useState(1);
   const [lockTimer, setLockTimer] = useState(600); // 10 minutes
 
+  const [noticeModal, setNoticeModal] = useState(null);
+
   // For seating events, we allow multiple seat selection (max 5)
   const handleSeatClick = (seat) => {
     if (seat.status !== 'AVAILABLE') return;
@@ -42,7 +44,7 @@ export default function SeatMapPage() {
         return prev.filter(s => s.id !== seat.id);
       } else {
         if (prev.length >= 5) {
-          alert('Maksimal 5 kursi per pesanan');
+          setNoticeModal('Batas maksimal pembelian adalah 5 kursi dalam satu pesanan.');
           return prev;
         }
         return [...prev, seat];
@@ -312,6 +314,30 @@ export default function SeatMapPage() {
           </div>
         )}
       </div>
+
+      {noticeModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-sm bg-white dark:bg-obsidian-card rounded-3xl border border-gray-200 dark:border-obsidian-border shadow-2xl overflow-hidden relative p-6 text-center">
+            <div className="pulse-line-oxblood w-full absolute top-0 left-0"></div>
+            <div className="w-12 h-12 rounded-2xl bg-gold/15 border border-gold/40 text-oxblood dark:text-gold flex items-center justify-center mx-auto mb-3">
+              <Ticket className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-extrabold text-gray-900 dark:text-white mb-1.5">
+              Batas Pilihan Kursi
+            </h3>
+            <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed mb-5">
+              {noticeModal}
+            </p>
+            <button
+              type="button"
+              onClick={() => setNoticeModal(null)}
+              className="w-full py-2.5 rounded-xl gold-gradient-btn text-obsidian font-extrabold text-xs shadow-gold-glow"
+            >
+              Mengerti
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
