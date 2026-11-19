@@ -89,6 +89,14 @@ export default function TicketDetailScreen() {
     }
   };
 
+  const handleGoBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(tabs)');
+    }
+  };
+
   if (loading) {
     return (
       <View style={{ flex: 1, backgroundColor: Colors.obsidian, justifyContent: 'center', alignItems: 'center' }}>
@@ -122,11 +130,13 @@ export default function TicketDetailScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: Colors.obsidian }}>
       <View style={{ paddingHorizontal: 24, paddingTop: 60, paddingBottom: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <TouchableOpacity onPress={() => router.back()} style={{ padding: 8, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12 }}>
+        <TouchableOpacity onPress={handleGoBack} style={{ padding: 8, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12 }}>
           <Ionicons name="arrow-back" size={24} color={Colors.white} />
         </TouchableOpacity>
         <Text style={{ color: Colors.white, fontSize: 18, fontWeight: '800' }}>E-Tiket</Text>
-        <View style={{ width: 40 }} />
+        <TouchableOpacity onPress={() => router.replace('/(tabs)')} style={{ padding: 8, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12 }}>
+          <Ionicons name="home-outline" size={22} color={Colors.gold} />
+        </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 24, alignItems: 'center', paddingBottom: 100 }}>

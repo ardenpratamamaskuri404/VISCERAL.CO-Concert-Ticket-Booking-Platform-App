@@ -49,7 +49,7 @@ export default function OrderSuccessScreen() {
   }, []);
 
   return (
-    <View style={{ flex: 1, backgroundColor: Colors.obsidian, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+    <View style={{ flex: 1, backgroundColor: theme.bg, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
       
       {/* Decorative success animation background */}
       <View style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, alignItems: 'center', justifyContent: 'center', opacity: 0.1 }}>
@@ -69,16 +69,16 @@ export default function OrderSuccessScreen() {
           </View>
         </View>
 
-        <Text style={{ color: Colors.gold, fontSize: 32, fontWeight: '900', marginBottom: 12, textAlign: 'center' }}>
+        <Text style={{ color: theme.gold, fontSize: 32, fontWeight: '900', marginBottom: 12, textAlign: 'center' }}>
           Pembayaran Berhasil!
         </Text>
         
-        <Text style={{ color: Colors.textMuted, fontSize: 16, textAlign: 'center', lineHeight: 24, marginBottom: 40 }}>
+        <Text style={{ color: theme.textMuted, fontSize: 16, textAlign: 'center', lineHeight: 24, marginBottom: 40 }}>
           Terima kasih telah memesan tiket di VISCERAL.CO.{'\n'}E-tiket Anda sudah siap.
         </Text>
       </Animated.View>
 
-      <Animated.View style={{ opacity: opacityAnim, width: '100%', gap: 16 }}>
+      <Animated.View style={{ opacity: opacityAnim, width: '100%', gap: 14 }}>
         <GoldButton 
           title="Lihat Barcode Tiket" 
           onPress={() => {
@@ -93,6 +93,12 @@ export default function OrderSuccessScreen() {
         <GoldButton 
           title="Daftar Semua Tiket Saya" 
           onPress={() => router.replace('/(tabs)/tickets')} 
+          variant="outline"
+          size="lg"
+        />
+        <GoldButton 
+          title="Kembali ke Beranda" 
+          onPress={() => router.replace('/(tabs)')} 
           variant="outline"
           size="lg"
         />
