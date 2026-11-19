@@ -375,24 +375,43 @@ ordersRoutes.post('/checkout', authMiddleware, async (c) => {
   }
 });
 
-// Mobile Return URL (Menampilkan halaman HTML sederhana agar user bisa menutup WebBrowser)
+// Mobile Return URL (Bridge HTTPS yang aman untuk DOKU, lalu redirect otomatis kembali ke app Expo)
 ordersRoutes.all('/mobile-return/:id', (c) => {
+  const rawRedirect = c.req.query('redirect') || '';
+  const safeRedirect =
+    rawRedirect.startsWith('exp://') ||
+    rawRedirect.startsWith('visceral://') ||
+    rawRedirect.startsWith('http://') ||
+    rawRedirect.startsWith('https://')
+      ? rawRedirect
+      : '';
+
   return c.html(`
     <html>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Kembali ke VISCERAL.CO</title>
         <style>
-          body { background: #14110F; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; text-align: center; padding: 20px; margin: 0; }
-          .icon { font-size: 50px; margin-bottom: 20px; }
-          h2 { color: #C89B3C; margin-bottom: 10px; }
-          p { color: #A0A0A0; line-height: 1.5; }
+          body { background: #14110F; color: #FFFFFF; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; font-family: -apple-system, BlinkMacSystemFont, sans-serif; text-align: center; padding: 24px; margin: 0; }
+          .card { background: #201C19; border: 1px solid #2A2520; border-radius: 24px; padding: 32px 24px; max-width: 360px; width: 100%; }
+          .icon { font-size: 48px; margin-bottom: 16px; }
+          h2 { color: #C89B3C; margin: 0 0 10px; font-size: 22px; }
+          p { color: #9E9893; line-height: 1.5; font-size: 14px; margin: 0 0 24px; }
+          .btn { display: inline-block; width: 100%; box-sizing: border-box; background: #C89B3C; color: #14110F; font-weight: 800; text-decoration: none; padding: 14px 20px; border-radius: 14px; font-size: 14px; }
         </style>
       </head>
       <body>
-        <div class="icon">✅</div>
-        <h2>Transaksi Diproses</h2>
-        <p>Pembayaran Anda sedang kami konfirmasi dengan DOKU.</p>
-        <p>Silakan tekan tombol <b>Done</b> atau <b>X</b> di pojok layar untuk menutup halaman ini dan kembali ke aplikasi.</p>
+        <div class="card">
+          <div class="icon">✅</div>
+          <h2>Pembayaran Diproses</h2>
+          <p>Terima kasih! Pembayaran Anda sedang dikonfirmasi. Ketuk tombol di bawah atau tutup jendela ini untuk melihat tiket Anda di aplikasi.</p>
+          ${safeRedirect ? `<a class="btn" href="${safeRedirect.replace(/"/g, '&quot;')}">Kembali ke Aplikasi</a>` : ''}
+        </div>
+        ${
+          safeRedirect
+            ? `<script>setTimeout(function(){ window.location.href = ${JSON.stringify(safeRedirect)}; }, 350);</script>`
+            : ''
+        }
       </body>
     </html>
   `);
@@ -402,12 +421,23 @@ ordersRoutes.all('/mobile-return/:id', (c) => {
 ordersRoutes.post('/:id/generate-doku', authMiddleware, async (c) => {
   try {
     const orderId = c.req.param('id');
-    const body = await c.req.json().catch(() => ({})); // Parse body safely
+    const body = await c.req.json().catch(() => ({}));
     const order = await prisma.order.findUnique({ where: { id: orderId } });
     if (!order) return c.json({ success: false, message: 'Pesanan tidak ditemukan' }, 404);
 
-    // If mobile sends a direct deep link returnUrl, use it. Otherwise fallback to the HTML bridge page.
-    const mobileCallbackUrl = body.returnUrl || `${process.env.API_URL || 'https://wisdom-detection-uncharted.ngrok-free.dev'}/api/orders/mobile-return/${order.id}`;
+    // DOKU membutuhkan callback_url HTTP/HTTPS yang valid (bukan custom scheme exp:// atau visceral://)
+    const proto = c.req.header('x-forwarded-proto') || 'https';
+    const host = c.req.header('x-forwarded-host') || c.req.header('host');
+    const inferredBase = host ? `${proto}://${host}` : 'https://wisdom-detection-uncharted.ngrok-free.dev';
+    const publicBase = (process.env.API_URL || inferredBase).replace(/\/$/, '');
+
+    const rawReturnUrl = typeof body.returnUrl === 'string' ? body.returnUrl : '';
+    const isHttpReturn = rawReturnUrl.startsWith('http://') || rawReturnUrl.startsWith('https://');
+    const mobileCallbackUrl = isHttpReturn
+      ? rawReturnUrl
+      : `${publicBase}/api/orders/mobile-return/${order.id}${
+          rawReturnUrl ? `?redirect=${encodeURIComponent(rawReturnUrl)}` : ''
+        }`;
 
     const dokuRes = await createDokuPayment(order, Number(order.totalAmount), mobileCallbackUrl);
     if (dokuRes.success) {

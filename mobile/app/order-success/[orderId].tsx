@@ -1,23 +1,29 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, Animated, Dimensions } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Colors } from '../../src/constants/theme';
+import { Colors, getThemeColors } from '../../src/constants/theme';
 import GoldButton from '../../src/components/GoldButton';
 import { Ionicons } from '@expo/vector-icons';
 import LottieView from 'lottie-react-native';
 import api from '../../src/api/axios';
+import { useApp } from '../../src/context/AppContext';
 
 const { width } = Dimensions.get('window');
 
 export default function OrderSuccessScreen() {
   const { orderId } = useLocalSearchParams();
   const router = useRouter();
+  const { fetchOrders, darkMode } = useApp();
+  const theme = getThemeColors(darkMode);
 
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const [ticketId, setTicketId] = useState<string | null>(null);
 
   useEffect(() => {
+    // Pastikan daftar tiket di Tab Tiket Saya langsung terbarui
+    fetchOrders();
+
     // Fetch order to get ticket ID for quick navigation
     api.get(`/orders/${orderId}`)
       .then(res => {
@@ -26,7 +32,7 @@ export default function OrderSuccessScreen() {
           setTicketId(order.tickets[0].id);
         }
       })
-      .catch(err => console.error('Error fetching order tickets', err));
+      .catch(err => console.warn('Error fetching order tickets', err));
     Animated.sequence([
       Animated.spring(scaleAnim, {
         toValue: 1,
