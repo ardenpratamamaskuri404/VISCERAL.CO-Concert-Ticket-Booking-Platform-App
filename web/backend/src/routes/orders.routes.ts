@@ -9,14 +9,17 @@ import { createNotification } from './notifications.routes';
 
 const ordersRoutes = new Hono<{ Variables: { user: any } }>();
 
-// Ambil riwayat pesanan (Untuk fitur Tiket Saya)
-ordersRoutes.get('/', async (c) => {
+// Ambil riwayat pesanan (Untuk fitur Tiket Saya & Admin) - Protected by authMiddleware
+ordersRoutes.get('/', authMiddleware, async (c) => {
   try {
-    // Idealnya ambil dari auth token (c.get('user')), tapi sementara ambil semua order untuk demo atau filter via query
+    const authUser = c.get('user');
     const customerId = c.req.query('customerId');
     
-    let whereClause = {};
-    if (customerId) {
+    let whereClause: any = {};
+    if (authUser.role === 'CUSTOMER') {
+      // Customer hanya boleh melihat pesanannya sendiri
+      whereClause = { customerId: authUser.id };
+    } else if (customerId) {
       whereClause = { customerId };
     }
 
@@ -224,9 +227,10 @@ ordersRoutes.put('/refunds/:refundId/reject', authMiddleware, async (c) => {
   }
 });
 
-// Get Order by ID
-ordersRoutes.get('/:id', async (c) => {
+// Get Order by ID - Protected by authMiddleware
+ordersRoutes.get('/:id', authMiddleware, async (c) => {
   try {
+    const authUser = c.get('user');
     const orderId = c.req.param('id');
     const order = await prisma.order.findUnique({
       where: { id: orderId },
@@ -242,6 +246,9 @@ ordersRoutes.get('/:id', async (c) => {
     });
 
     if (!order) return c.json({ error: 'Pesanan tidak ditemukan' }, 404);
+    if (authUser.role === 'CUSTOMER' && order.customerId !== authUser.id) {
+      return c.json({ error: 'Akses ditolak untuk pesanan ini' }, 403);
+    }
 
     let eventTitle = 'Unknown Event';
     let venueName = '';
@@ -528,9 +535,14 @@ ordersRoutes.post('/:id/simulate-pay', async (c) => {
   }
 });
 
-// Manual Approve Order (Oleh Admin)
-ordersRoutes.put('/:id/approve', async (c) => {
+// Manual Approve Order (Oleh Admin / Superadmin) - Protected by authMiddleware
+ordersRoutes.put('/:id/approve', authMiddleware, async (c) => {
   try {
+    const authUser = c.get('user');
+    if (authUser.role !== 'ADMIN' && authUser.role !== 'SUPERADMIN') {
+      return c.json({ success: false, message: 'Akses ditolak.' }, 403);
+    }
+
     const orderId = c.req.param('id');
     const order = await prisma.order.findUnique({
       where: { id: orderId },
@@ -646,11 +658,18 @@ ordersRoutes.put('/:id/reject', authMiddleware, async (c) => {
   }
 });
 
-// Upload Proof Endpoint
-ordersRoutes.put('/:id/proof', async (c) => {
+// Upload Proof Endpoint - Protected by authMiddleware
+ordersRoutes.put('/:id/proof', authMiddleware, async (c) => {
   try {
+    const authUser = c.get('user');
     const orderId = c.req.param('id');
     const body = await c.req.json();
+
+    const existing = await prisma.order.findUnique({ where: { id: orderId } });
+    if (!existing) return c.json({ success: false, message: 'Pesanan tidak ditemukan' }, 404);
+    if (authUser.role === 'CUSTOMER' && existing.customerId !== authUser.id) {
+      return c.json({ success: false, message: 'Akses ditolak.' }, 403);
+    }
     
     await prisma.order.update({
       where: { id: orderId },

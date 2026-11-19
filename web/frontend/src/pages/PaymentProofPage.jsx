@@ -110,7 +110,7 @@ export default function PaymentProofPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500 dark:text-gray-400">Atas Nama:</span>
-                  <span className="font-bold text-gray-900 dark:text-white">PT VISCERAL KREATIF INDONESIA</span>
+                  <span className="font-bold text-gray-900 dark:text-white">VISCERAL DIGITAL KREATIF</span>
                 </div>
               </div>
 

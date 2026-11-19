@@ -3,6 +3,21 @@ import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import { API_URL } from './config';
 
+let onUnauthorizedCallback: ((message?: string) => void) | null = null;
+
+export const registerUnauthorizedHandler = (cb: ((message?: string) => void) | null) => {
+  onUnauthorizedCallback = cb;
+};
+
+const AUTH_PUBLIC_ENDPOINTS = [
+  '/auth/login',
+  '/auth/verify-login-otp',
+  '/auth/resend-login-otp',
+  '/auth/register',
+  '/auth/forgot-password',
+  '/auth/reset-password',
+];
+
 const api = axios.create({
   baseURL: API_URL,
   timeout: 10000,
@@ -32,12 +47,14 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor — handle 401
+// Response interceptor — handle 401 (expired/invalid session token)
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-      // Token expired or invalid — clear stored data
+    const reqUrl = error.config?.url || '';
+    const isPublicAuthCall = AUTH_PUBLIC_ENDPOINTS.some((ep) => reqUrl.includes(ep));
+
+    if (error.response && error.response.status === 401 && !isPublicAuthCall) {
       try {
         if (Platform.OS === 'web') {
           if (typeof window !== 'undefined') localStorage.removeItem('visceral_token');
@@ -46,6 +63,11 @@ api.interceptors.response.use(
         }
       } catch (e) {
         // Ignore cleanup errors
+      }
+      if (onUnauthorizedCallback) {
+        onUnauthorizedCallback(
+          error.response?.data?.error || 'Sesi login Anda telah habis. Silakan login kembali.'
+        );
       }
     }
     return Promise.reject(error);

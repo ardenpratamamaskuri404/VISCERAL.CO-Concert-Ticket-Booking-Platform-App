@@ -4,6 +4,19 @@ import { io } from 'socket.io-client';
 
 const StoreContext = createContext(null);
 
+const getTokenExpiryMs = (token) => {
+  if (!token || typeof token !== 'string') return null;
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const payload = JSON.parse(atob(base64));
+    return typeof payload.exp === 'number' ? payload.exp * 1000 : null;
+  } catch {
+    return null;
+  }
+};
+
 export const StoreProvider = ({ children }) => {
   // Theme State
   const [darkMode, setDarkMode] = useState(() => {
@@ -27,7 +40,30 @@ export const StoreProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(() => {
     const savedUser = localStorage.getItem('visceral_user');
     const token = localStorage.getItem('visceral_token');
-    return (savedUser && token) ? JSON.parse(savedUser) : null;
+    if (!savedUser || !token) return null;
+    const expMs = getTokenExpiryMs(token);
+    if (expMs && Date.now() >= expMs) {
+      localStorage.removeItem('visceral_user');
+      localStorage.removeItem('visceral_token');
+      localStorage.removeItem('visceral_token_exp');
+      sessionStorage.setItem(
+        'visceral_session_expired_msg',
+        'Sesi login Anda telah habis. Silakan login kembali.'
+      );
+      return null;
+    }
+    try {
+      return JSON.parse(savedUser);
+    } catch {
+      return null;
+    }
+  });
+
+  const [sessionExpiresAt, setSessionExpiresAt] = useState(() => {
+    const token = localStorage.getItem('visceral_token');
+    const expMs = getTokenExpiryMs(token);
+    if (expMs && Date.now() < expMs) return new Date(expMs).toISOString();
+    return null;
   });
 
   // Application Data States
@@ -286,17 +322,100 @@ export const StoreProvider = ({ children }) => {
     } catch (e) {}
   };
 
-  const loginUser = (user, token) => {
+  const loginUser = (user, token, expiresAt) => {
     setCurrentUser(user);
     localStorage.setItem('visceral_user', JSON.stringify(user));
     localStorage.setItem('visceral_token', token);
+    const expMs = expiresAt ? new Date(expiresAt).getTime() : getTokenExpiryMs(token);
+    if (expMs) {
+      const iso = new Date(expMs).toISOString();
+      localStorage.setItem('visceral_token_exp', iso);
+      setSessionExpiresAt(iso);
+    }
   };
 
-  const logoutUser = () => {
+  const logoutUser = useCallback(() => {
     setCurrentUser(null);
+    setSessionExpiresAt(null);
     localStorage.removeItem('visceral_user');
     localStorage.removeItem('visceral_token');
-  };
+    localStorage.removeItem('visceral_token_exp');
+  }, []);
+
+  // Auto-logout otomatis tepat saat masa berlaku token sesi habis (middleware + client guard)
+  useEffect(() => {
+    const handleForceExpire = (msg) => {
+      const notice = msg || 'Sesi login Anda telah habis. Silakan login kembali.';
+      logoutUser();
+      sessionStorage.setItem('visceral_session_expired_msg', notice);
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login?expired=1';
+      }
+    };
+
+    const onSessionExpiredEvent = (e) => {
+      logoutUser();
+      if (e?.detail?.message) {
+        sessionStorage.setItem('visceral_session_expired_msg', e.detail.message);
+      }
+    };
+
+    window.addEventListener('visceral:session-expired', onSessionExpiredEvent);
+
+    if (!currentUser) {
+      return () => {
+        window.removeEventListener('visceral:session-expired', onSessionExpiredEvent);
+      };
+    }
+
+    const token = localStorage.getItem('visceral_token');
+    const expMs = getTokenExpiryMs(token);
+    if (!token || !expMs) {
+      handleForceExpire('Sesi login tidak valid. Silakan login kembali.');
+      return () => {
+        window.removeEventListener('visceral:session-expired', onSessionExpiredEvent);
+      };
+    }
+
+    const remainingMs = expMs - Date.now();
+    if (remainingMs <= 0) {
+      handleForceExpire('Sesi login Anda telah habis. Silakan login kembali.');
+      return () => {
+        window.removeEventListener('visceral:session-expired', onSessionExpiredEvent);
+      };
+    }
+
+    setSessionExpiresAt(new Date(expMs).toISOString());
+
+    // Verifikasi sesi ke backend middleware saat halaman dimuat
+    api.get('/auth/session').catch(() => {
+      // 401 ditangani oleh axios interceptor
+    });
+
+    // Set timer auto-logout tepat saat token kedaluwarsa (dibatasi max 2^31-1 ms)
+    const timeoutDelay = Math.min(remainingMs, 2147483647);
+    const expiryTimer = setTimeout(() => {
+      handleForceExpire('Batas waktu sesi login Anda telah berakhir. Silakan login kembali.');
+    }, timeoutDelay);
+
+    // Cek ulang saat user kembali membuka tab setelah sleep/idle
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        const currentToken = localStorage.getItem('visceral_token');
+        const currentExp = getTokenExpiryMs(currentToken);
+        if (!currentToken || !currentExp || Date.now() >= currentExp) {
+          handleForceExpire('Batas waktu sesi login Anda telah berakhir. Silakan login kembali.');
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearTimeout(expiryTimer);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('visceral:session-expired', onSessionExpiredEvent);
+    };
+  }, [currentUser, logoutUser]);
 
   const performLogout = () => {
     setIsLoggingOut(true);
@@ -594,6 +713,7 @@ export const StoreProvider = ({ children }) => {
       toggleDarkMode,
       socketConnected,
       currentUser,
+      sessionExpiresAt,
       setCurrentUser,
       loginUser,
       logoutUser,

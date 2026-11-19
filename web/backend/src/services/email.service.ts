@@ -11,17 +11,37 @@ const transporter = nodemailer.createTransport({
   ignoreTLS: true,
 });
 
+export type OtpEmailPurpose = 'LOGIN' | 'RESET_PASSWORD';
+
 /**
- * Mengirimkan email OTP Reset Password berdesain resmi VISCERAL.CO ke Mailpit (SMTP Laragon)
+ * Mengirimkan email OTP (Login 2FA / Reset Password) berdesain resmi VISCERAL.CO ke Mailpit (SMTP Laragon)
  */
-export async function sendOtpEmail(to: string, otp: string, recipientName: string = 'Pengguna'): Promise<boolean> {
+export async function sendOtpEmail(
+  to: string,
+  otp: string,
+  recipientName: string = 'Pengguna',
+  purpose: OtpEmailPurpose = 'RESET_PASSWORD'
+): Promise<boolean> {
+  const isLogin = purpose === 'LOGIN';
+  const emailTitle = isLogin ? 'Kode OTP Login VISCERAL.CO' : 'Kode Verifikasi VISCERAL.CO';
+  const emailSubject = isLogin
+    ? `[VISCERAL.CO] Kode OTP Login Akun: ${otp}`
+    : `[VISCERAL.CO] Kode Verifikasi Reset Password: ${otp}`;
+  const introText = isLogin
+    ? 'Kami mendeteksi percobaan masuk ke akun VISCERAL.CO Anda. Masukkan kode One-Time Password (OTP) 6 digit berikut untuk menyelesaikan proses login:'
+    : 'Kami menerima permintaan untuk mengatur ulang kata sandi akun VISCERAL.CO Anda. Gunakan kode verifikasi One-Time Password (OTP) berikut untuk melanjutkan:';
+  const otpLabel = isLogin ? 'Kode OTP Login Anda' : 'Kode Verifikasi Anda';
+  const footnoteText = isLogin
+    ? 'Jika Anda tidak merasa melakukan login ini, segera ubah kata sandi akun Anda karena seseorang mungkin mengetahui password Anda.'
+    : 'Jika Anda tidak merasa melakukan permintaan ini, silakan abaikan email ini. Akun Anda tetap aman.';
+
   const htmlContent = `
     <!DOCTYPE html>
     <html lang="id">
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Kode Verifikasi VISCERAL.CO</title>
+      <title>${emailTitle}</title>
       <style>
         body {
           margin: 0;
@@ -132,11 +152,11 @@ export async function sendOtpEmail(to: string, otp: string, recipientName: strin
         <div class="content">
           <div class="greeting">Halo, ${recipientName}</div>
           <div class="desc">
-            Kami menerima permintaan untuk mengatur ulang kata sandi akun VISCERAL.CO Anda. Gunakan kode verifikasi One-Time Password (OTP) berikut untuk melanjutkan:
+            ${introText}
           </div>
 
           <div class="otp-box">
-            <div class="otp-label">Kode Verifikasi Anda</div>
+            <div class="otp-label">${otpLabel}</div>
             <div class="otp-code">${otp}</div>
           </div>
 
@@ -148,11 +168,11 @@ export async function sendOtpEmail(to: string, otp: string, recipientName: strin
           </div>
 
           <div class="desc" style="font-size: 12px; color: #7D746D; margin-bottom: 0;">
-            Jika Anda tidak merasa melakukan permintaan ini, silakan abaikan email ini. Akun Anda tetap aman.
+            ${footnoteText}
           </div>
         </div>
         <div class="footer">
-          &copy; ${new Date().getFullYear()} PT Visceral Kreatif Indonesia. Hak Cipta Dilindungi.<br>
+          &copy; ${new Date().getFullYear()} Visceral Digital Kreatif. Hak Cipta Dilindungi.<br>
           Email keamanan sistem otomatis. Mohon tidak membalas email ini.
         </div>
       </div>
@@ -164,7 +184,7 @@ export async function sendOtpEmail(to: string, otp: string, recipientName: strin
     const info = await transporter.sendMail({
       from: EMAIL_FROM,
       to,
-      subject: `[VISCERAL.CO] Kode Verifikasi Reset Password: ${otp}`,
+      subject: emailSubject,
       text: `Kode verifikasi OTP akun VISCERAL.CO Anda adalah: ${otp}. Berlaku selama 5 menit. Jangan bagikan kepada siapa pun.`,
       html: htmlContent,
     });
