@@ -7,6 +7,7 @@ import { logger } from 'hono/logger';
 import { Server as SocketIOServer } from 'socket.io';
 import type { Server as HTTPServer } from 'node:http';
 import dotenv from 'dotenv';
+import { prisma } from './config/db';
 
 dotenv.config();
 
@@ -51,10 +52,24 @@ app.route('/api/chat', chatRoutes);
 const port = process.env.PORT ? parseInt(process.env.PORT) : 3000;
 
 // Set up node HTTP server for Socket.io integration
-const server = serve({
-  fetch: app.fetch,
-  port
-}) as HTTPServer;
+const server = serve(
+  {
+    fetch: app.fetch,
+    port,
+  },
+  (info) => {
+    console.log(`Server is running on http://localhost:${info.port}`);
+  }
+) as HTTPServer;
+
+server.on('error', (err: NodeJS.ErrnoException) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`Port ${port} sedang digunakan oleh proses lain. Hentikan proses lama terlebih dahulu lalu jalankan ulang server.`);
+    process.exit(1);
+  }
+  console.error('Server error:', err);
+  process.exit(1);
+});
 
 const io = new SocketIOServer(server, {
   cors: {
@@ -79,10 +94,7 @@ io.on('connection', (socket) => {
   // Chat logic
   socket.on('send_chat_message', async (data: { senderId: string, message: string, receiverId?: string, senderRole?: string }) => {
     try {
-      const { PrismaClient } = require('@prisma/client');
-      const prismaClient = new PrismaClient();
-      
-      const newChat = await prismaClient.chatMessage.create({
+      const newChat = await prisma.chatMessage.create({
         data: {
           senderId: data.senderId,
           receiverId: data.receiverId || null,
@@ -112,7 +124,18 @@ io.on('connection', (socket) => {
   });
 });
 
+// Graceful shutdown so Windows releases port cleanly on nodemon restart / Ctrl+C
+const shutdown = async () => {
+  io.close();
+  server.close(async () => {
+    await prisma.$disconnect().catch(() => {});
+    process.exit(0);
+  });
+  setTimeout(() => process.exit(0), 2000).unref();
+};
+
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
+
 // Export io so other modules (like controllers) can emit events
 export { io };
-
-console.log(`Server is running on http://localhost:${port}`);
