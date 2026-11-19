@@ -8,7 +8,7 @@ import { motion } from 'framer-motion';
 import { Calendar, Clock, MapPin, Ticket, ArrowRight, Sparkles, ShieldAlert } from 'lucide-react';
 
 export default function SchedulePage() {
-  const { events, artists, socketConnected } = useStore();
+  const { events, artists } = useStore();
   const [selectedMonth, setSelectedMonth] = useState('ALL');
   const [onlyAvailable, setOnlyAvailable] = useState(false);
   const [now, setNow] = useState(new Date());
@@ -96,24 +96,16 @@ export default function SchedulePage() {
         className="flex-1 pt-28 pb-16 px-4 md:px-8 max-w-7xl mx-auto w-full"
       >
         {/* Header */}
-        <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4 text-center md:text-left">
-          <div>
-            <span className="text-xs font-bold text-oxblood dark:text-gold uppercase tracking-widest inline-flex items-center gap-1.5 mb-1">
-              <Calendar className="w-3.5 h-3.5" /> Agenda Pertunjukan Resmi
-            </span>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-900 dark:text-white">
-              Kalender & Jadwal Konser
-            </h1>
-            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1 max-w-2xl">
-              Pantau seluruh agenda konser VISCERAL.CO secara kronologis per bulan agar tidak melewatkan penampilan artis favorit Anda.
-            </p>
-          </div>
-          {socketConnected && (
-            <span className="inline-flex items-center gap-2 self-center md:self-auto px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-500 text-[11px] font-bold">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              Live Sync Aktif
-            </span>
-          )}
+        <div className="mb-8 text-center md:text-left">
+          <span className="text-xs font-bold text-oxblood dark:text-gold uppercase tracking-widest inline-flex items-center gap-1.5 mb-1">
+            <Calendar className="w-3.5 h-3.5" /> Agenda Pertunjukan Resmi
+          </span>
+          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-900 dark:text-white">
+            Kalender & Jadwal Konser
+          </h1>
+          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1 max-w-2xl">
+            Pantau seluruh agenda konser VISCERAL.CO secara kronologis per bulan agar tidak melewatkan penampilan artis favorit Anda.
+          </p>
         </div>
 
         {/* Next Upcoming Spotlight Card */}
