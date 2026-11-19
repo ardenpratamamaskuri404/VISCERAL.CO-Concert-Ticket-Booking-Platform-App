@@ -236,13 +236,14 @@ export async function sendOrderSuccessEmail(orderId: string): Promise<boolean> {
 
     const ticketRowsHtml = order.tickets
       .map(
-        (t) => `
+        (t, idx) => `
           <tr>
             <td style="padding: 10px 12px; border-bottom: 1px solid #2B2623; color: #F5F5F0; font-size: 13px;">
+              <span style="display: inline-block; font-size: 10px; font-weight: 800; color: #C89B3C; letter-spacing: 0.5px; margin-bottom: 2px;">TIKET #${idx + 1}</span><br>
               <strong>${t.category?.name || 'Tiket'}</strong><br>
               <span style="color: #9E9893; font-size: 11px;">Kursi: ${t.seat?.seatNumber || 'Standing / Festival'}</span>
             </td>
-            <td style="padding: 10px 12px; border-bottom: 1px solid #2B2623; color: #E2B755; font-family: monospace; font-size: 12px; text-align: right;">
+            <td style="padding: 10px 12px; border-bottom: 1px solid #2B2623; color: #E2B755; font-family: monospace; font-size: 12px; text-align: right; vertical-align: middle;">
               ${t.ticketCode}
             </td>
           </tr>
