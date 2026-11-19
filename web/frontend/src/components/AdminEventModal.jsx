@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Image } from 'lucide-react';
+import { X, Image, Music } from 'lucide-react';
 
 export default function AdminEventModal({
   isOpen,
@@ -11,6 +11,9 @@ export default function AdminEventModal({
   description, setDescription,
   bannerFile, setBannerFile,
   categories, setCategories,
+  artistsList = [],
+  selectedArtistIds = [],
+  toggleArtistSelection,
   handleCategoryChange,
   addCategory,
   handleSubmit
@@ -21,10 +24,10 @@ export default function AdminEventModal({
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-white dark:bg-obsidian-card p-6 rounded-3xl border border-gray-200 dark:border-obsidian-border max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="font-extrabold text-base">
+          <h3 className="font-extrabold text-base text-gray-900 dark:text-white">
             {isEditMode ? 'Edit Data Event' : 'Buat Event Konser Baru'}
           </h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-white">
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-900 dark:hover:text-white">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -55,9 +58,9 @@ export default function AdminEventModal({
               />
             </div>
             <div>
-              <label className="block text-xs font-bold mb-1">Tanggal Event</label>
+              <label className="block text-xs font-bold mb-1">Tanggal & Waktu Event</label>
               <input
-                type={isEditMode ? "date" : "datetime-local"}
+                type="datetime-local"
                 value={eventDate}
                 onChange={(e) => setEventDate(e.target.value)}
                 className="w-full p-2.5 rounded-xl text-xs bg-gray-50 dark:bg-obsidian-surface border border-gray-200 dark:border-obsidian-border focus:outline-none focus:border-gold"
@@ -91,6 +94,34 @@ export default function AdminEventModal({
               className="w-full p-2.5 rounded-xl text-xs bg-gray-50 dark:bg-obsidian-surface border border-gray-200 dark:border-obsidian-border min-h-[80px] focus:outline-none focus:border-gold"
             />
           </div>
+
+          {artistsList.length > 0 && toggleArtistSelection && (
+            <div>
+              <label className="block text-xs font-bold mb-1.5 flex items-center gap-1.5">
+                <Music className="w-3.5 h-3.5 text-gold" /> Lineup Artis Penampil (Artis pertama = Headliner)
+              </label>
+              <div className="flex flex-wrap gap-2 p-3 rounded-xl bg-gray-50 dark:bg-obsidian-surface border border-gray-200 dark:border-obsidian-border max-h-36 overflow-y-auto">
+                {artistsList.map((art) => {
+                  const isSelected = selectedArtistIds.includes(art.id);
+                  const isFirst = selectedArtistIds[0] === art.id;
+                  return (
+                    <button
+                      key={art.id}
+                      type="button"
+                      onClick={() => toggleArtistSelection(art.id)}
+                      className={`px-3 py-1 rounded-full text-[11px] font-bold transition-all border ${
+                        isSelected
+                          ? 'bg-gold text-obsidian border-gold shadow-sm'
+                          : 'bg-white dark:bg-obsidian text-gray-600 dark:text-gray-300 border-gray-200 dark:border-obsidian-border hover:border-gold/50'
+                      }`}
+                    >
+                      {isFirst ? '★ ' : ''}{art.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {!isEditMode && categories && (
             <div>

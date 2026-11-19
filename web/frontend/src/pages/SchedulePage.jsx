@@ -8,13 +8,13 @@ import { motion } from 'framer-motion';
 import { Calendar, Clock, MapPin, Ticket, ArrowRight, Sparkles, ShieldAlert } from 'lucide-react';
 
 export default function SchedulePage() {
-  const { events, artists } = useStore();
+  const { events, artists, socketConnected } = useStore();
   const [selectedMonth, setSelectedMonth] = useState('ALL');
   const [onlyAvailable, setOnlyAvailable] = useState(false);
   const [now, setNow] = useState(new Date());
 
   useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 60000);
+    const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
@@ -65,11 +65,12 @@ export default function SchedulePage() {
 
   const getCountdown = (targetDate) => {
     const diff = new Date(targetDate) - now;
-    if (diff <= 0) return { days: 0, hours: 0, minutes: 0 };
+    if (diff <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0 };
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
     const minutes = Math.floor((diff / (1000 * 60)) % 60);
-    return { days, hours, minutes };
+    const seconds = Math.floor((diff / 1000) % 60);
+    return { days, hours, minutes, seconds };
   };
 
   const getMinPrice = (ev) => {
@@ -95,16 +96,24 @@ export default function SchedulePage() {
         className="flex-1 pt-28 pb-16 px-4 md:px-8 max-w-7xl mx-auto w-full"
       >
         {/* Header */}
-        <div className="mb-8 text-center md:text-left">
-          <span className="text-xs font-bold text-oxblood dark:text-gold uppercase tracking-widest inline-flex items-center gap-1.5 mb-1">
-            <Calendar className="w-3.5 h-3.5" /> Agenda Pertunjukan Resmi
-          </span>
-          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-900 dark:text-white">
-            Kalender & Jadwal Konser
-          </h1>
-          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1 max-w-2xl">
-            Pantau seluruh agenda konser VISCERAL.CO secara kronologis per bulan agar tidak melewatkan penampilan artis favorit Anda.
-          </p>
+        <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4 text-center md:text-left">
+          <div>
+            <span className="text-xs font-bold text-oxblood dark:text-gold uppercase tracking-widest inline-flex items-center gap-1.5 mb-1">
+              <Calendar className="w-3.5 h-3.5" /> Agenda Pertunjukan Resmi
+            </span>
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-900 dark:text-white">
+              Kalender & Jadwal Konser
+            </h1>
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1 max-w-2xl">
+              Pantau seluruh agenda konser VISCERAL.CO secara kronologis per bulan agar tidak melewatkan penampilan artis favorit Anda.
+            </p>
+          </div>
+          {socketConnected && (
+            <span className="inline-flex items-center gap-2 self-center md:self-auto px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-500 text-[11px] font-bold">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              Live Sync Aktif
+            </span>
+          )}
         </div>
 
         {/* Next Upcoming Spotlight Card */}
@@ -154,18 +163,22 @@ export default function SchedulePage() {
                   {(() => {
                     const cd = getCountdown(nextUpcomingEvent.eventDate);
                     return (
-                      <div className="flex items-center gap-3">
-                        <div className="px-3.5 py-2 rounded-2xl bg-gray-100 dark:bg-obsidian-surface border border-gray-200 dark:border-obsidian-border text-center min-w-[64px]">
+                      <div className="flex items-center gap-2.5">
+                        <div className="px-3 py-2 rounded-2xl bg-gray-100 dark:bg-obsidian-surface border border-gray-200 dark:border-obsidian-border text-center min-w-[58px]">
                           <span className="text-lg font-black text-gold block leading-none">{cd.days}</span>
                           <span className="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-bold">Hari</span>
                         </div>
-                        <div className="px-3.5 py-2 rounded-2xl bg-gray-100 dark:bg-obsidian-surface border border-gray-200 dark:border-obsidian-border text-center min-w-[64px]">
-                          <span className="text-lg font-black text-gold block leading-none">{cd.hours}</span>
+                        <div className="px-3 py-2 rounded-2xl bg-gray-100 dark:bg-obsidian-surface border border-gray-200 dark:border-obsidian-border text-center min-w-[58px]">
+                          <span className="text-lg font-black text-gold block leading-none">{String(cd.hours).padStart(2, '0')}</span>
                           <span className="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-bold">Jam</span>
                         </div>
-                        <div className="px-3.5 py-2 rounded-2xl bg-gray-100 dark:bg-obsidian-surface border border-gray-200 dark:border-obsidian-border text-center min-w-[64px]">
-                          <span className="text-lg font-black text-gold block leading-none">{cd.minutes}</span>
+                        <div className="px-3 py-2 rounded-2xl bg-gray-100 dark:bg-obsidian-surface border border-gray-200 dark:border-obsidian-border text-center min-w-[58px]">
+                          <span className="text-lg font-black text-gold block leading-none">{String(cd.minutes).padStart(2, '0')}</span>
                           <span className="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-bold">Menit</span>
+                        </div>
+                        <div className="px-3 py-2 rounded-2xl bg-gray-100 dark:bg-obsidian-surface border border-gray-200 dark:border-obsidian-border text-center min-w-[58px]">
+                          <span className="text-lg font-black text-gold block leading-none">{String(cd.seconds).padStart(2, '0')}</span>
+                          <span className="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-bold">Detik</span>
                         </div>
                       </div>
                     );
