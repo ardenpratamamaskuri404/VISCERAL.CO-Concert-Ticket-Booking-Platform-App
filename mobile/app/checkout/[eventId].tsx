@@ -203,20 +203,41 @@ export default function CheckoutScreen() {
       {/* Bottom Sticky Bar */}
       <View style={{ 
         position: 'absolute', bottom: 0, left: 0, right: 0, 
-        backgroundColor: Colors.darkSurface, 
-        borderTopWidth: 1, borderTopColor: Colors.darkBorder,
-        padding: 24, paddingBottom: Platform.OS === 'ios' ? 32 : 24,
+        backgroundColor: theme.card, 
+        borderTopWidth: 1, borderTopColor: theme.border,
+        paddingHorizontal: 20, paddingTop: 16, paddingBottom: Platform.OS === 'ios' ? 32 : 24,
       }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <Text style={{ color: Colors.textMuted, fontSize: 14 }}>Total Pembayaran</Text>
-          <Text style={{ color: Colors.gold, fontSize: 20, fontWeight: '900' }}>Rp {total.toLocaleString('id-ID')}</Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+          <Text style={{ color: theme.textMuted, fontSize: 14 }}>Total Pembayaran</Text>
+          <Text style={{ color: theme.gold, fontSize: 20, fontWeight: '900' }}>Rp {total.toLocaleString('id-ID')}</Text>
         </View>
-        <GoldButton 
-          title="Bayar Sekarang" 
-          onPress={handleCreateOrder} 
-          loading={submitting}
-          size="lg"
-        />
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            disabled={submitting}
+            style={{
+              flex: 1,
+              paddingVertical: 15,
+              borderRadius: 16,
+              backgroundColor: theme.surface,
+              borderWidth: 1,
+              borderColor: theme.border,
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: submitting ? 0.5 : 1,
+            }}
+          >
+            <Text style={{ color: theme.text, fontWeight: '800', fontSize: 14 }}>Batalkan</Text>
+          </TouchableOpacity>
+          <View style={{ flex: 2 }}>
+            <GoldButton 
+              title="Bayar Sekarang" 
+              onPress={handleCreateOrder} 
+              loading={submitting}
+              size="lg"
+            />
+          </View>
+        </View>
       </View>
 
       {/* Modal Notifikasi Konflik Kursi / Error Pemesanan */}

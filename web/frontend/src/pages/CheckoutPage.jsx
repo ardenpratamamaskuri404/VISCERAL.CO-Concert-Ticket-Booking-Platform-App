@@ -90,6 +90,9 @@ export default function CheckoutPage() {
             <CheckoutSummary
               orderData={orderData}
               handleProceed={handleProceed}
+              onCancel={() =>
+                navigate(orderData?.eventId ? `/seat-map/${orderData.eventId}` : '/explore')
+              }
               loading={loading}
             />
           </div>
