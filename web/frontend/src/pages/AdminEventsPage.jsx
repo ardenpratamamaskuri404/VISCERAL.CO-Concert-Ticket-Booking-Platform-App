@@ -57,6 +57,11 @@ export default function AdminEventsPage() {
     setCategories([...categories, { name: '', price: '', totalSeats: '', earlyBirdPrice: '', earlyBirdStartDate: '', earlyBirdEndDate: '' }]);
   };
 
+  const removeCategory = (index) => {
+    if (categories.length <= 1) return;
+    setCategories(categories.filter((_, idx) => idx !== index));
+  };
+
   const handleCreateEvent = async (e) => {
     e.preventDefault();
     if (!title || !venue || categories.length === 0) return;
@@ -175,6 +180,7 @@ export default function AdminEventsPage() {
         toggleArtistSelection={toggleArtistSelection}
         handleCategoryChange={handleCategoryChange}
         addCategory={addCategory}
+        removeCategory={removeCategory}
         handleSubmit={handleCreateEvent}
       />
 

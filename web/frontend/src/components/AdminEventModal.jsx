@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Image, Music } from 'lucide-react';
+import { X, Image, Music, Trash2 } from 'lucide-react';
 
 export default function AdminEventModal({
   isOpen,
@@ -16,6 +16,7 @@ export default function AdminEventModal({
   toggleArtistSelection,
   handleCategoryChange,
   addCategory,
+  removeCategory,
   handleSubmit
 }) {
   if (!isOpen) return null;
@@ -128,6 +129,26 @@ export default function AdminEventModal({
               <label className="block text-xs font-bold mb-1">Kategori Tiket & Harga Early Bird</label>
               {categories.map((cat, idx) => (
                 <div key={idx} className="p-3 border border-gray-200 dark:border-obsidian-border rounded-xl mb-3 space-y-3 bg-gray-50/50 dark:bg-obsidian-surface/50">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-gray-500 dark:text-gray-400">
+                      Kategori #{idx + 1}
+                    </span>
+                    {categories.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          removeCategory
+                            ? removeCategory(idx)
+                            : setCategories(categories.filter((_, i) => i !== idx))
+                        }
+                        title="Hapus Kategori"
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-bold text-oxblood dark:text-red-400 hover:bg-oxblood/10 transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        Hapus
+                      </button>
+                    )}
+                  </div>
                   <div className="grid grid-cols-3 gap-3">
                     <input
                       type="text"
