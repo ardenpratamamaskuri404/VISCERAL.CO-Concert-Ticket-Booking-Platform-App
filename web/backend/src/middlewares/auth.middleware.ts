@@ -33,7 +33,14 @@ export const authMiddleware = async (c: Context, next: Next) => {
     // Pastikan user masih aktif di database dan role sinkron secara real-time
     const dbUser = await prisma.user.findUnique({
       where: { id: decoded.id },
-      select: { id: true, email: true, fullName: true, role: true, avatarUrl: true },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        phoneNumber: true,
+        role: true,
+        avatarUrl: true,
+      },
     });
 
     if (!dbUser) {

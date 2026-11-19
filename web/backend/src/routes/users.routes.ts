@@ -130,6 +130,8 @@ usersRoutes.put('/profile', async (c) => {
       }
     });
 
+    io.emit('users_updated', { action: 'profile_updated', userId: updatedUser.id });
+
     return c.json({ message: 'Profil berhasil diperbarui', data: updatedUser });
   } catch (error) {
     console.error('Update Profile Error:', error);

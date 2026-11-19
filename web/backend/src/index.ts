@@ -17,7 +17,7 @@ import ordersRoutes from './routes/orders.routes';
 import artistsRoutes from './routes/artists.routes';
 import usersRoutes from './routes/users.routes';
 import ticketsRoutes from './routes/tickets.routes';
-import notificationsRoutes from './routes/notifications.routes';
+import notificationsRoutes, { createNotification } from './routes/notifications.routes';
 import chatRoutes from './routes/chat.routes';
 import { releaseExpiredLocks } from './services/order.service';
 
@@ -107,13 +107,14 @@ io.on('connection', (socket) => {
       // Broadcast to admins
       io.emit('new_chat_message', newChat);
       
-      // Also broadcast a notification to admins
-      if (data.senderRole === 'CUSTOMER') {
-        io.emit('new_notification', {
-          title: 'Pesan Baru',
-          message: `Pesan dari ${newChat.sender.fullName}: ${data.message}`,
-          type: 'CHAT'
-        });
+      // Simpan notifikasi chat ke database & broadcast real-time ke semua Admin/Superadmin
+      if (data.senderRole === 'CUSTOMER' || newChat.sender.role === 'CUSTOMER') {
+        await createNotification(
+          'Pesan Customer Baru',
+          `${newChat.sender.fullName}: ${data.message}`,
+          'CHAT',
+          ['ADMIN', 'SUPERADMIN']
+        );
       }
     } catch (e) {
       console.error('Socket chat error:', e);

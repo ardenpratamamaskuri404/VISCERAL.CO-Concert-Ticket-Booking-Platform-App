@@ -296,8 +296,16 @@ export const StoreProvider = ({ children }) => {
       fetchNotifications();
     });
 
-    socket.on('users_updated', () => {
+    socket.on('users_updated', (data) => {
       fetchUsers();
+      if (data?.userId && currentUserRef.current?.id === data.userId) {
+        api.get('/auth/session').then((res) => {
+          if (res.data?.user) {
+            setCurrentUser(res.data.user);
+            localStorage.setItem('visceral_user', JSON.stringify(res.data.user));
+          }
+        }).catch(() => {});
+      }
     });
 
     socket.on('audit_logs_updated', () => {

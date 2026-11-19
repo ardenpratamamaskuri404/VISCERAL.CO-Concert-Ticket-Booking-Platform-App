@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, RefreshControl, TouchableOpacity, FlatList, TextInput, Image } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Colors } from '../../src/constants/theme';
+import { Colors, getThemeColors } from '../../src/constants/theme';
 import { useApp } from '../../src/context/AppContext';
 import { useAuth } from '../../src/context/AuthContext';
 import { getAssetUrl } from '../../src/api/config';
@@ -11,8 +11,9 @@ import { Ionicons } from '@expo/vector-icons';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { events, artists, fetchEvents, fetchArtists } = useApp();
+  const { events, artists, fetchEvents, fetchArtists, darkMode } = useApp();
   const { currentUser } = useAuth();
+  const theme = getThemeColors(darkMode);
   
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -36,46 +37,46 @@ export default function HomeScreen() {
   });
 
   return (
-    <View style={{ flex: 1, backgroundColor: Colors.obsidian }}>
+    <View style={{ flex: 1, backgroundColor: theme.bg }}>
       
       {/* Header */}
       <View style={{ paddingHorizontal: 24, paddingTop: 60, paddingBottom: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           <VisceralLogo size={48} />
           <View>
-            <Text style={{ color: Colors.textMuted, fontSize: 12 }}>Selamat datang,</Text>
-            <Text style={{ color: Colors.gold, fontSize: 16, fontWeight: '800' }}>{currentUser?.fullName?.split(' ')[0]}</Text>
+            <Text style={{ color: theme.textMuted, fontSize: 12 }}>Selamat datang,</Text>
+            <Text style={{ color: theme.gold, fontSize: 16, fontWeight: '800' }}>{currentUser?.fullName?.split(' ')[0]}</Text>
           </View>
         </View>
 
         <TouchableOpacity 
           onPress={() => router.push('/chat')}
-          style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.darkSurface, alignItems: 'center', justifyContent: 'center' }}
+          style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border, alignItems: 'center', justifyContent: 'center' }}
         >
-          <Ionicons name="chatbubble-ellipses" size={20} color={Colors.gold} />
+          <Ionicons name="chatbubble-ellipses" size={20} color={theme.gold} />
         </TouchableOpacity>
       </View>
 
       <ScrollView 
         contentContainerStyle={{ paddingBottom: 100 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.gold} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.gold} />}
       >
         {/* Search Bar */}
         <View style={{ paddingHorizontal: 24, marginBottom: 32 }}>
           <View style={{ 
             flexDirection: 'row', 
             alignItems: 'center', 
-            backgroundColor: Colors.darkSurface, 
+            backgroundColor: theme.card, 
             borderRadius: 16, 
             paddingHorizontal: 16, 
             borderWidth: 1, 
-            borderColor: Colors.darkBorder 
+            borderColor: theme.border 
           }}>
-            <Ionicons name="search" size={20} color={Colors.textMuted} />
+            <Ionicons name="search" size={20} color={theme.textMuted} />
             <TextInput
-              style={{ flex: 1, color: Colors.white, paddingVertical: 14, paddingHorizontal: 12, fontSize: 14 }}
+              style={{ flex: 1, color: theme.text, paddingVertical: 14, paddingHorizontal: 12, fontSize: 14 }}
               placeholder="Cari konser impianmu..."
-              placeholderTextColor={Colors.textMuted}
+              placeholderTextColor={theme.textMuted}
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
@@ -86,10 +87,10 @@ export default function HomeScreen() {
         {artists.length > 0 && (
           <View style={{ marginBottom: 28 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, marginBottom: 14 }}>
-              <Text style={{ color: Colors.white, fontSize: 18, fontWeight: '800' }}>Lineup Artis</Text>
+              <Text style={{ color: theme.text, fontSize: 18, fontWeight: '800' }}>Lineup Artis</Text>
               {selectedArtistId && (
                 <TouchableOpacity onPress={() => setSelectedArtistId(null)}>
-                  <Text style={{ color: Colors.gold, fontSize: 12, fontWeight: '700' }}>Reset Filter</Text>
+                  <Text style={{ color: theme.gold, fontSize: 12, fontWeight: '700' }}>Reset Filter</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -108,9 +109,9 @@ export default function HomeScreen() {
                         width: 62,
                         height: 62,
                         borderRadius: 31,
-                        backgroundColor: Colors.darkSurface,
+                        backgroundColor: theme.card,
                         borderWidth: 2,
-                        borderColor: isSelected ? Colors.gold : Colors.darkBorder,
+                        borderColor: isSelected ? Colors.gold : theme.border,
                         overflow: 'hidden',
                         marginBottom: 6,
                         alignItems: 'center',
@@ -120,13 +121,13 @@ export default function HomeScreen() {
                       {photoUri ? (
                         <Image source={{ uri: photoUri }} style={{ width: '100%', height: '100%' }} />
                       ) : (
-                        <Ionicons name="person" size={24} color={Colors.textMuted} />
+                        <Ionicons name="person" size={24} color={theme.textMuted} />
                       )}
                     </View>
                     <Text
                       numberOfLines={1}
                       style={{
-                        color: isSelected ? Colors.gold : Colors.textMuted,
+                        color: isSelected ? theme.gold : theme.textMuted,
                         fontSize: 11,
                         fontWeight: isSelected ? '800' : '600',
                         textAlign: 'center',
@@ -144,7 +145,7 @@ export default function HomeScreen() {
         {/* Featured Events */}
         {!searchQuery && !selectedArtistId && featuredEvents.length > 0 && (
           <View style={{ marginBottom: 32 }}>
-            <Text style={{ color: Colors.white, fontSize: 18, fontWeight: '800', marginLeft: 24, marginBottom: 16 }}>Highlight Event</Text>
+            <Text style={{ color: theme.text, fontSize: 18, fontWeight: '800', marginLeft: 24, marginBottom: 16 }}>Highlight Event</Text>
             <FlatList
               data={featuredEvents}
               horizontal
@@ -164,7 +165,7 @@ export default function HomeScreen() {
 
         {/* All Events Grid */}
         <View style={{ paddingHorizontal: 24 }}>
-          <Text style={{ color: Colors.white, fontSize: 18, fontWeight: '800', marginBottom: 16 }}>
+          <Text style={{ color: theme.text, fontSize: 18, fontWeight: '800', marginBottom: 16 }}>
             {searchQuery ? 'Hasil Pencarian' : 'Semua Konser'}
           </Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>

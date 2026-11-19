@@ -33,7 +33,7 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
-  const { currentUser, isLoggedIn } = useAuth();
+  const { currentUser, isLoggedIn, updateUser } = useAuth();
 
   const [events, setEvents] = useState<Event[]>([]);
   const [artists, setArtists] = useState<Artist[]>([]);
@@ -144,6 +144,16 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       fetchNotifications();
     };
     const onNewNotification = () => fetchNotifications();
+    const onUsersUpdated = (data: { userId?: string }) => {
+      const user = currentUserRef.current;
+      if (user && data?.userId === user.id) {
+        api.get('/auth/session').then((res) => {
+          if (res.data?.user) {
+            updateUser(res.data.user);
+          }
+        }).catch(() => {});
+      }
+    };
     const onNewChatMessage = (msg: ChatMessage) => {
       const user = currentUserRef.current;
       if (!user) return;
@@ -164,6 +174,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     socket.on('refunds_updated', onRefundsUpdated);
     socket.on('new_notification', onNewNotification);
     socket.on('new_chat_message', onNewChatMessage);
+    socket.on('users_updated', onUsersUpdated);
 
     return () => {
       socket.off('connect', onConnect);
@@ -176,9 +187,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       socket.off('refunds_updated', onRefundsUpdated);
       socket.off('new_notification', onNewNotification);
       socket.off('new_chat_message', onNewChatMessage);
+      socket.off('users_updated', onUsersUpdated);
       disconnectSocket();
     };
-  }, [fetchEvents, fetchArtists, fetchOrders, fetchNotifications]);
+  }, [fetchEvents, fetchArtists, fetchOrders, fetchNotifications, updateUser]);
 
   // Fetch user-scoped data when logged in
   useEffect(() => {
